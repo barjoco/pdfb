@@ -21,26 +21,29 @@ func main() {
 
 	pdf := pdfb.New(opts)
 
-	pdf.DefineFont(
+	pdf.DefineFonts(
 		pdfb.Font{
-			identifier: "Roboto",
-			fontDir:    "~/.fonts/Roboto_Mono",
-			regular:    "RobotoMono-Regular",
-			bold:       "RobotoMono-Bold",
-			italic:     "RobotoMono-Italic",
+			Identifier: "RobotoMono",
+			FontDir:    "~/.fonts/Roboto_Mono",
+			Styles: []pdfb.FontStyle{
+				{Name: "Regular", File: "RobotoMono-Regular"},
+				{Name: "Bold", File: "RobotoMono-Bold"},
+				{Name: "Italic", File: "RobotoMono-Italic"},
+				{Name: "BoldItalic", File: "RobotoMono-BoldItalic"},
+				{Name: "Thin", File: "RobotoMono-Thin"},
+			},
 		},
 	)
 
 	pdf.SetHeader()
 
 	pdf.Page()
-	pdf.ImportFonts("~/.fonts/Roboto_Mono/*")
-	pdf.SetFont("RobotoMono-Regular", "underline", "s")
-	pdf.Write("Hello %s", opts.Author)
-	pdf.SetFont("RobotoMono-Thin")
-	pdf.WriteLn(" and")
+	pdf.SetFont("RobotoMono", "BoldItalic", "Strikethrough")
+	pdf.Write("Hello %s ", opts.Author)
+	pdf.SetFont("RobotoMono", "Thin", "underline")
+	pdf.WriteLn("and")
 	pdf.Write("welcome to ")
-	pdf.SetFont("Times", "bold", "italic")
+	pdf.SetFont("Times")
 	pdf.Write("PDF Builder.")
 	pdf.Ln(2)
 	pdf.ResetFont()

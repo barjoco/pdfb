@@ -34,8 +34,8 @@ type Pdfb struct {
 // New returns a PDF Builder
 func New(opts *Options) *Pdfb {
 	// Default font is Arial
-	if opts.FontFamily == "Default" {
-		opts.FontFamily = "Arial"
+	if strings.ToLower(opts.FontFamily) == "default" {
+		opts.FontFamily = "arial"
 	}
 
 	// New pdfb instance
@@ -60,7 +60,7 @@ func New(opts *Options) *Pdfb {
 	p.pdf.SetFontSize(p.opts.FontSize)
 	p.pdf.AliasNbPages("")
 
-	p.SetFont(p.opts.FontFamily)
+	p.pdf.SetFont(p.opts.FontFamily, "", p.opts.FontSize)
 
 	return p
 }
@@ -126,8 +126,6 @@ func (p *Pdfb) SetHeader() {
 
 // Table is used to draw a table
 func (p *Pdfb) Table() {
-	// columns: 2
-	// This is some *bold* text
 	text1 := "Officia ex veniam et cillum Lorem velit. Excepteur velit est dolore"
 	text2 := " irure amet sit mollit labore. Officia enim sit proident aute veniam laboris "
 	text3 := "id quis sit cupidatat dolore."
@@ -170,11 +168,11 @@ func (p *Pdfb) Table() {
 	p.Ln(2)
 	p.pdf.CellFormat(pageWidth-p.opts.Margin*2, p.opts.LineHeight, "|", "1", 0, "C", false, 0, "")
 
-	// p.ResetFont()
+	p.ResetFont()
 
-	// for _, line := range p.pdf.SplitText(text2, colWidth) {
-	// 	p.WriteLn(line)
-	// }
+	for _, line := range p.pdf.SplitText(text2, colWidth) {
+		p.WriteLn(line)
+	}
 
 	// use these:
 	// p.pdf.SplitText
