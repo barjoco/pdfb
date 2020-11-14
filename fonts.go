@@ -16,14 +16,38 @@ import (
 var stdFonts = []string{"courier", "helvetica", "arial", "times", "symbol", "zapfdingbats"}
 var fonts = make(map[string]string)
 
+// Font ...
+type Font struct {
+	identifier     string
+	fontDir        string
+	regular        string
+	bold           string
+	italic         string
+	otherVariables []FontVariable
+}
+
+// FontVariable ...
+type FontVariable struct {
+	name string
+	path string
+}
+
+// DefineFont ...
+// func (p *Pdfb) DefineFont(fonts []Font) {
+// 	for font := range fonts {
+
+// 	}
+// }
+
 // ImportFonts is used to import fonts (or a single font) for use inside the PDF builder.
 // Unix-style file globbing can be used, e.g. "~/.fonts/Roboto_*.ttf"
-func ImportFonts(fontPaths ...string) {
+func (p *Pdfb) ImportFonts(fontPaths ...string) {
 	// store invalid fonts (wrong type, duplicate)
 	var fontErrors [][]string
 
 	color.Blue("Imported fonts:")
 
+	// loop over all provided font paths
 	for _, f := range fontPaths {
 		f = strings.TrimSpace(f)
 		f = expandPath(f)
@@ -32,8 +56,8 @@ func ImportFonts(fontPaths ...string) {
 		fontFiles, err := filepath.Glob(f)
 		log.ReportFatal(err)
 
+		// loop over files matching the glob
 		for _, fontFile := range fontFiles {
-			// get file name before the .ttf, to be used as the font identifier
 			fileName := filepath.Base(fontFile)
 			dirName := filepath.Dir(fontFile)
 			id := strings.Split(fileName, ".ttf")[0]
@@ -41,13 +65,15 @@ func ImportFonts(fontPaths ...string) {
 			// check if a font with this identifier is imported already
 			if _, exists := fonts[id]; !exists {
 				// check the file is of the correct type
-				buf, _ := ioutil.ReadFile(fontFile)
-				kind, _ := filetype.Match(buf)
+				buf, err := ioutil.ReadFile(fontFile)
+				log.ReportFatal(err)
+				kind, err := filetype.Match(buf)
 				if kind.Extension == "ttf" {
 					// add to fonts map
 					fonts[id] = fontFile
-					pdf.SetFontLocation(dirName)
-					pdf.AddUTF8Font(id, "", fileName)
+					// add font into p.pdf
+					p.pdf.SetFontLocation(dirName)
+					p.pdf.AddUTF8Font(id, "", fileName)
 					fmt.Println(color.CyanString(id+":"), color.GreenString("✔"), color.HiBlackString("("+fontFile+")"))
 				} else {
 					fontErrors = append(fontErrors, []string{id, fontFile, "Invalid type. Must be font type TTF"})
@@ -64,32 +90,52 @@ func ImportFonts(fontPaths ...string) {
 	}
 }
 
-// GetFonts is used to see which fonts have been exported, and their identifiers
-func GetFonts() map[string]string {
-	return fonts
-}
-
 // SetFont is used to set the current font for writing in the PDF document
 //
 // The fontIdentifier is the name of the font file without its extension.
 // For example, the identifier for Roboto_Regular.ttf is Roboto_Regular
-func SetFont(fontIdentifier string) {
-	pdf.SetFont(fontIdentifier, "", 0)
+func (p *Pdfb) SetFont(fontIdentifier string, options ...string) {
+	if len(options) > 4 {
+		log.ErrorFatal("Too many options given to SetFont. Must have between 0 and 4.")
+	}
+
+	if strings.ToLower(fontIdentifier) == "default" {
+		fontIdentifier = p.opts.FontFamily
+	}
+
+	var styleStr string
+
+	for _, opt := range options {
+		if opt == "bold" || "opt" == "b" {
+			styleStr += "b"
+			if !array.Contains(stdFonts, strings.ToLower(fontIdentifier)) {
+				log.ErrorFatal("Can't use bold style with non-standard font")
+			}
+		} else if opt == "italic" || opt == "i" {
+			styleStr += "i"
+			if !array.Contains(stdFonts, strings.ToLower(fontIdentifier)) {
+				log.ErrorFatal("Can't use italic style with non-standard font")
+			}
+		} else if opt == "underline" || opt == "u" {
+			styleStr += "u"
+		} else if opt == "strikethrough" || opt == "s" {
+			styleStr += "s"
+		} else {
+			log.ErrorFatal("Invalid option (%s) given to SetFont.", opt)
+		}
+	}
+
+	fontSize, _ := p.pdf.GetFontSize()
+	p.pdf.SetFont(fontIdentifier, styleStr, fontSize)
 }
 
 // SetFontSize is used to set the font size
-func SetFontSize(s float64) {
-	pdf.SetFontSize(s)
-	fontSize = s
+func (p *Pdfb) SetFontSize(fontSize float64) {
+	p.pdf.SetFontSize(fontSize)
 }
 
-// StandardFont ...
-func StandardFont(fontName, fontStyle string) {
-	fontName = strings.ToLower(fontName)
-
-	if array.Contains(stdFonts, fontName) {
-		pdf.SetFont(fontName, fontStyle, fontSize)
-	} else {
-		log.ErrorFatal("%s is not a standard font.", fontName)
-	}
+// ResetFont ...
+func (p *Pdfb) ResetFont() {
+	fontSize, _ := p.pdf.GetFontSize()
+	p.pdf.SetFont(p.opts.FontFamily, "", fontSize)
 }
