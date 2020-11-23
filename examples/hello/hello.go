@@ -17,8 +17,8 @@ func main() {
 		FontFamily:  "Default",
 		FontSize:    12.0,
 		LineHeight:  5.0,
-		Foreground:  "#BCBDD0",
-		Background:  "#161923",
+		Foreground:  "#000000",
+		Background:  "#ffffff",
 	}
 
 	pdf := pdfb.New(opts)
