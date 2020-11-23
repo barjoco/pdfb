@@ -23,20 +23,20 @@ type Font struct {
 // FontStyle defines the name of a font style, and the name
 // of the corresponding file. No need to include the .ttf part.
 // The font file must be in the directory defined in Font.
-// Eg. Name: "Thin", File: "RobotoMono-Thin"
+// Eg. FontStyle{Name: "Thin", File: "RobotoMono-Thin"}
 type FontStyle struct {
 	Name string
 	File string
 }
 
-// DefineFonts is used to define zero or more fonts
+// DefineFonts is used to define one or more fonts
 func (p *Pdfb) DefineFonts(fonts ...Font) {
 	// loop over the supplied fonts
 	for _, font := range fonts {
 		p.pdf.SetFontLocation(expandPath(font.FontDir))
-		// custom fonts are stored in gofpdf using their font identifier
-		// combined with the style name
-		// eg. RobotoMono__Bold or RobotoMono__Thin
+		// fonts are stored in gofpdf using their font identifier
+		// combined with the style name (to lower)
+		// eg. robotomono__bold or robotomono__thin
 		for _, style := range font.Styles {
 			p.pdf.AddUTF8Font(strings.ToLower(font.Identifier+"__"+style.Name), "", style.File+".ttf")
 		}
@@ -51,6 +51,11 @@ func (p *Pdfb) DefineFonts(fonts ...Font) {
 // fontStyles are any combination of bold, italic, bolditalic, underline, and strikethrough
 // Custom fonts can use 1 custom style + underline and/or strikethrough
 // Standard fonts can use any combination of the styles
+//
+// Eg.
+// SetFont("Courier", "bold", "italic", "underline", "strikethrough")
+// or
+// SetFont("RobotoMono", "thin", "underline", "strikethrough")
 func (p *Pdfb) SetFont(fontIdentifier string, fontStyles ...string) {
 	var styleStr string
 	fontIdentifier = strings.ToLower(fontIdentifier)
@@ -93,10 +98,6 @@ func (p *Pdfb) SetFont(fontIdentifier string, fontStyles ...string) {
 				if customStyle == "" {
 					customStyle = fontStyle
 				}
-			case "bolditalic":
-				if customStyle == "" {
-					customStyle = fontStyle
-				}
 			case "underline":
 				styleStr += "u"
 			case "strikethrough":
@@ -120,7 +121,7 @@ func (p *Pdfb) SetFontSize(fontSize float64) {
 	p.opts.FontSize = fontSize
 }
 
-// ResetFont ...
+// ResetFont sets the font back to the font supplied in New
 func (p *Pdfb) ResetFont() {
 	p.pdf.SetFont(p.opts.FontFamily, "", p.opts.FontSize)
 }

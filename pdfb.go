@@ -2,13 +2,18 @@ package pdfb
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 
+	"github.com/barjoco/utils/colour"
 	"github.com/barjoco/utils/log"
 	"github.com/jung-kurt/gofpdf"
 )
 
 var err error
+var fgColour color.RGBA
+var bgColour color.RGBA
+var bgFunc func(*Pdfb)
 
 // Options defines a list of document options
 type Options struct {
@@ -23,6 +28,8 @@ type Options struct {
 	FontFamily  string
 	FontSize    float64
 	LineHeight  float64
+	Background  string
+	Foreground  string
 }
 
 // Pdfb ...
@@ -53,14 +60,38 @@ func New(opts *Options) *Pdfb {
 	p.pdf.SetTitle(p.opts.Title, true)
 	p.pdf.SetAuthor(p.opts.Author, true)
 	p.pdf.SetSubject(p.opts.Subject, true)
-	p.pdf.SetKeywords(strings.Join(p.opts.Keywords, " "), true)
+	p.pdf.SetKeywords(strings.Join(p.opts.Keywords, ";"), true)
 	p.pdf.SetCreator("github.com/barjoco/pdfb", true)
 	p.pdf.SetCellMargin(2)
 	p.pdf.SetMargins(p.opts.Margin-1, p.opts.Margin, p.opts.Margin-1) //subtract half of cellMargin
 	p.pdf.SetFontSize(p.opts.FontSize)
 	p.pdf.AliasNbPages("")
-
+	p.pdf.SetAutoPageBreak(true, p.opts.Margin)
 	p.pdf.SetFont(p.opts.FontFamily, "", p.opts.FontSize)
+
+	// set foreground colour
+	fgColour, err = colour.HexToRGB(p.opts.Foreground)
+	log.ReportFatal(err)
+	p.pdf.SetTextColor(int(fgColour.R), int(fgColour.G), int(fgColour.B))
+
+	// set background colour
+	bgColour, err = colour.HexToRGB(p.opts.Background)
+	log.ReportFatal(err)
+
+	// set background colour
+	bgFunc = func(p *Pdfb) {
+		oldR, oldG, oldB := p.pdf.GetFillColor()
+		w, h, _ := p.pdf.PageSize(p.pdf.PageNo())
+		p.pdf.SetFillColor(int(bgColour.R), int(bgColour.G), int(bgColour.B))
+		p.pdf.Rect(0, 0, w, h, "F")
+		p.pdf.SetFillColor(oldR, oldG, oldB)
+	}
+
+	// default headerfunc draws a rectangle under each page
+	// filled with opts.Background colour
+	p.pdf.SetHeaderFunc(func() {
+		bgFunc(p)
+	})
 
 	return p
 }
@@ -103,78 +134,45 @@ func (p *Pdfb) SaveAs(filePath string) {
 
 // SetHeader ...
 // The height of the header is the height of the top margin + the line height
-func (p *Pdfb) SetHeader() {
+func (p *Pdfb) SetHeader(leftText, centreText, rightText string) {
 	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
-	leftMargin, topMargin, rightMargin, _ := p.pdf.GetMargins()
-	sectionWidth := (pageWidth - leftMargin - rightMargin) / 3
-	headerHeight := topMargin + p.opts.LineHeight
+	margin, _, _, _ := p.pdf.GetMargins()
+	sectionWidth := (pageWidth - margin*2) / 3
+	headerHeight := margin + p.opts.LineHeight
 
 	p.pdf.SetHeaderFunc(func() {
+		// bgfunc used to draw rectangle for background colour
+		bgFunc(p)
+
 		// put the header at the top of the page
 		p.pdf.SetY(0)
 
 		// format header
-		p.pdf.CellFormat(sectionWidth, headerHeight, "Left", "1", 0, "L", false, 0, "")
-		p.pdf.CellFormat(sectionWidth, headerHeight, "Centre", "1", 0, "C", false, 0, "")
-		p.pdf.CellFormat(sectionWidth, headerHeight, "Right", "1", 0, "R", false, 0, "")
+		p.pdf.CellFormat(sectionWidth, headerHeight, leftText, "", 0, "L", false, 0, "")
+		p.pdf.CellFormat(sectionWidth, headerHeight, centreText, "", 0, "C", false, 0, "")
+		p.pdf.CellFormat(sectionWidth, headerHeight, rightText, "", 0, "R", false, 0, "")
 
 		// set cursor to the height of the header + 1 new line
-		p.pdf.SetX(leftMargin)
+		p.pdf.SetX(margin)
 		p.pdf.SetY(headerHeight + p.opts.LineHeight)
 	})
 }
 
-// Table is used to draw a table
-func (p *Pdfb) Table() {
-	text1 := "Officia ex veniam et cillum Lorem velit. Excepteur velit est dolore"
-	text2 := " irure amet sit mollit labore. Officia enim sit proident aute veniam laboris "
-	text3 := "id quis sit cupidatat dolore."
-	p.Write(text1)
-	p.SetFont("default", "bold")
-	p.Write(text2)
-	p.ResetFont()
-	p.Write(text3)
+// SetFooter ...
+func (p *Pdfb) SetFooter() {
+	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
+	margin, _, _, _ := p.pdf.GetMargins()
+	sectionWidth := (pageWidth - margin*2)
+	footerHeight := margin + p.opts.LineHeight
 
-	p.Ln(4)
+	p.pdf.SetFooterFunc(func() {
+		p.pdf.SetY(pageHeight - footerHeight)
+		pageNo := p.pdf.PageNo()
 
-	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
-	leftMargin, _, rightMargin, _ := p.pdf.GetMargins()
-	colWidth := (pageWidth - leftMargin - rightMargin) / 2
+		str := fmt.Sprintf("Page %d of {nb}", pageNo)
+		p.pdf.CellFormat(sectionWidth, footerHeight, str, "", 0, "C", false, 0, "")
+	})
 
-	var cursor float64
-
-	text1split := p.pdf.SplitText(text1, colWidth)
-
-	for i, line := range text1split {
-		p.Write(line)
-		cursor = p.pdf.GetX()
-		if i < len(text1split)-1 {
-			p.Ln(1)
-		}
-	}
-
-	p.SetFont("default", "bold")
-
-	text2split := p.pdf.SplitText(text2, colWidth-cursor)
-	p.Write(text2split[0])
-	p.Ln(1)
-
-	text2 = strings.Join(text2split[1:], " ")
-
-	for _, line := range p.pdf.SplitText(text2, colWidth) {
-		p.WriteLn(line)
-	}
-
-	p.Ln(2)
-	p.pdf.CellFormat(pageWidth-p.opts.Margin*2, p.opts.LineHeight, "|", "1", 0, "C", false, 0, "")
-
-	p.ResetFont()
-
-	for _, line := range p.pdf.SplitText(text2, colWidth) {
-		p.WriteLn(line)
-	}
-
-	// use these:
-	// p.pdf.SplitText
-	// p.pdf.GetStringWidth
+	// set the space from the bottom where the auto page break gets triggered
+	p.pdf.SetAutoPageBreak(true, footerHeight+p.opts.LineHeight*0.75)
 }
