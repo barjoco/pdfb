@@ -28,7 +28,7 @@ func main() {
 
 	pdf.Page()
 	pdf.SetFont("RobotoMono", "BoldItalic", "Strikethrough")
-	pdf.Write("Hello %s ", os.Getenv("user"))
+	pdf.Write("Hello %s ", os.Getenv("USER"))
 	pdf.SetFont("RobotoMono", "Thin", "underline")
 	pdf.WriteLn("and")
 	pdf.Write("welcome to ")
