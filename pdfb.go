@@ -2,7 +2,6 @@ package pdfb
 
 import (
 	"fmt"
-	"image/color"
 	"strings"
 
 	"github.com/barjoco/utils/colour"
@@ -11,89 +10,88 @@ import (
 )
 
 var err error
-var fgColour color.RGBA
-var bgColour color.RGBA
-var bgFunc func(*Pdfb)
-
-// Options defines a list of document options
-type Options struct {
-	Orientation string
-	Units       string
-	PageSize    string
-	Title       string
-	Author      string
-	Subject     string
-	Keywords    []string
-	Margin      float64
-	FontFamily  string
-	FontSize    float64
-	LineHeight  float64
-	Background  string
-	Foreground  string
-}
 
 // Pdfb ...
 type Pdfb struct {
-	pdf  *gofpdf.Fpdf
-	opts *Options
+	pdf         *gofpdf.Fpdf
+	bgFunc      func()
+	orientation string
+	units       string
+	pageSize    string
+	title       string
+	author      string
+	subject     string
+	keywords    []string
+	margin      float64
+	fontFamily  string
+	fontSize    float64
+	lineHeight  float64
+	background  string
+	foreground  string
 }
 
 // New returns a PDF Builder
-func New(opts *Options) *Pdfb {
-	// Default font is Arial
-	if strings.ToLower(opts.FontFamily) == "default" {
-		opts.FontFamily = "arial"
-	}
-
-	// New pdfb instance
+func New() *Pdfb {
 	p := &Pdfb{
-		gofpdf.New(
-			opts.Orientation,
-			opts.Units,
-			opts.PageSize,
-			"",
-		),
-		opts,
+		gofpdf.New("P", "mm", "A4", ""),
+		func() {},
+		"P",
+		"mm",
+		"A4",
+		"Document",
+		"Author",
+		"",
+		[]string{},
+		10.0,
+		"Arial",
+		12.0,
+		5.0,
+		"#ffffff",
+		"#000000",
 	}
 
 	// pdf initialisation
-	p.pdf.SetTitle(p.opts.Title, true)
-	p.pdf.SetAuthor(p.opts.Author, true)
-	p.pdf.SetSubject(p.opts.Subject, true)
-	p.pdf.SetKeywords(strings.Join(p.opts.Keywords, ";"), true)
+	p.pdf.SetTitle(p.title, true)
+	p.pdf.SetAuthor(p.author, true)
+	p.pdf.SetSubject(p.subject, true)
+	p.pdf.SetKeywords(strings.Join(p.keywords, ";"), true)
 	p.pdf.SetCreator("github.com/barjoco/pdfb", true)
 	p.pdf.SetCellMargin(2)
-	p.pdf.SetMargins(p.opts.Margin-1, p.opts.Margin, p.opts.Margin-1) //subtract half of cellMargin
-	p.pdf.SetFontSize(p.opts.FontSize)
+	p.pdf.SetMargins(p.margin-1, p.margin, p.margin-1) //subtract half of cellMargin
+	p.pdf.SetFontSize(p.fontSize)
 	p.pdf.AliasNbPages("")
-	p.pdf.SetAutoPageBreak(true, p.opts.Margin)
-	p.pdf.SetFont(p.opts.FontFamily, "", p.opts.FontSize)
+	p.pdf.SetAutoPageBreak(true, p.margin)
+	p.pdf.SetFont(p.fontFamily, "", p.fontSize)
 
-	// set foreground colour
-	fgColour, err = colour.HexToRGB(p.opts.Foreground)
-	log.ReportFatal(err)
-	p.pdf.SetTextColor(int(fgColour.R), int(fgColour.G), int(fgColour.B))
-
-	// set background colour
-	bgColour, err = colour.HexToRGB(p.opts.Background)
-	log.ReportFatal(err)
-
-	// set background colour
-	bgFunc = func(p *Pdfb) {
-		oldR, oldG, oldB := p.pdf.GetFillColor()
+	p.bgFunc = func() {
 		w, h, _ := p.pdf.PageSize(p.pdf.PageNo())
-		p.pdf.SetFillColor(int(bgColour.R), int(bgColour.G), int(bgColour.B))
-		p.pdf.Rect(0, 0, w, h, "F")
-		p.pdf.SetFillColor(oldR, oldG, oldB)
+		currentR, currentG, currentB := p.pdf.GetFillColor()
+		p.Box(0, 0, w, h, p.background)
+		p.pdf.SetFillColor(currentR, currentG, currentB)
 	}
 
-	// default headerfunc draws a rectangle under each page
-	// filled with opts.Background colour
 	p.pdf.SetHeaderFunc(func() {
-		bgFunc(p)
+		p.bgFunc()
 	})
 
+	p.SetForeground(p.foreground)
+
 	return p
+}
+
+// SetForeground ...
+func (p *Pdfb) SetForeground(hex string) {
+	fgRGB, err := colour.HexToRGB(hex)
+	log.ReportFatal(err)
+	p.pdf.SetTextColor(int(fgRGB.R), int(fgRGB.G), int(fgRGB.B))
+}
+
+// Box ...
+func (p *Pdfb) Box(x, y, w, h float64, hex string) {
+	RGB, err := colour.HexToRGB(hex)
+	log.ReportFatal(err)
+	p.pdf.SetFillColor(int(RGB.R), int(RGB.G), int(RGB.B))
+	p.pdf.Rect(x, y, w, h, "F")
 }
 
 // Page is used to insert a new page
@@ -104,13 +102,13 @@ func (p *Pdfb) Page() {
 // Ln is used to insert a new line
 func (p *Pdfb) Ln(lines int) {
 	for i := 0; i < lines; i++ {
-		p.pdf.Ln(p.opts.LineHeight)
+		p.pdf.Ln(p.lineHeight)
 	}
 }
 
 // Write is used to write text to the page
 func (p *Pdfb) Write(format string, a ...interface{}) {
-	p.pdf.Write(p.opts.LineHeight, fmt.Sprintf(format, a...))
+	p.pdf.Write(p.lineHeight, fmt.Sprintf(format, a...))
 }
 
 // WriteLn is used to write text to the page (drop to next line after text)
@@ -138,11 +136,11 @@ func (p *Pdfb) SetHeader(leftText, centreText, rightText string) {
 	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
 	margin, _, _, _ := p.pdf.GetMargins()
 	sectionWidth := (pageWidth - margin*2) / 3
-	headerHeight := margin + p.opts.LineHeight
+	headerHeight := margin + p.lineHeight
 
 	p.pdf.SetHeaderFunc(func() {
-		// bgfunc used to draw rectangle for background colour
-		bgFunc(p)
+		// bgfunc is necessary, used for drawing the background colour rectangle
+		p.bgFunc()
 
 		// put the header at the top of the page
 		p.pdf.SetY(0)
@@ -154,7 +152,7 @@ func (p *Pdfb) SetHeader(leftText, centreText, rightText string) {
 
 		// set cursor to the height of the header + 1 new line
 		p.pdf.SetX(margin)
-		p.pdf.SetY(headerHeight + p.opts.LineHeight)
+		p.pdf.SetY(headerHeight + p.lineHeight)
 	})
 }
 
@@ -163,16 +161,17 @@ func (p *Pdfb) SetFooter() {
 	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
 	margin, _, _, _ := p.pdf.GetMargins()
 	sectionWidth := (pageWidth - margin*2)
-	footerHeight := margin + p.opts.LineHeight
+	footerHeight := margin + p.lineHeight
 
 	p.pdf.SetFooterFunc(func() {
+		// set cursor to the position where the top of the footer starts drawing
 		p.pdf.SetY(pageHeight - footerHeight)
-		pageNo := p.pdf.PageNo()
 
-		str := fmt.Sprintf("Page %d of {nb}", pageNo)
+		// format footer
+		str := fmt.Sprintf("Page %d of {nb}", p.pdf.PageNo())
 		p.pdf.CellFormat(sectionWidth, footerHeight, str, "", 0, "C", false, 0, "")
 	})
 
 	// set the space from the bottom where the auto page break gets triggered
-	p.pdf.SetAutoPageBreak(true, footerHeight+p.opts.LineHeight*0.75)
+	p.pdf.SetAutoPageBreak(true, footerHeight+p.lineHeight*0.75)
 }

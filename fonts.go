@@ -33,7 +33,7 @@ type FontStyle struct {
 func (p *Pdfb) DefineFonts(fonts ...Font) {
 	// loop over the supplied fonts
 	for _, font := range fonts {
-		p.pdf.SetFontLocation(expandPath(font.FontDir))
+		p.pdf.SetFontLocation(expandHome(font.FontDir))
 		// fonts are stored in gofpdf using their font identifier
 		// combined with the style name (to lower)
 		// eg. robotomono__bold or robotomono__thin
@@ -60,10 +60,7 @@ func (p *Pdfb) SetFont(fontIdentifier string, fontStyles ...string) {
 	var styleStr string
 	fontIdentifier = strings.ToLower(fontIdentifier)
 
-	if fontIdentifier == "default" {
-		fontIdentifier = strings.ToLower(p.opts.FontFamily)
-	}
-
+	// check if font is one of the standard fonts or not
 	if array.Contains(stdFonts, fontIdentifier) {
 		for _, fontStyle := range fontStyles {
 			switch strings.ToLower(fontStyle) {
@@ -81,7 +78,7 @@ func (p *Pdfb) SetFont(fontIdentifier string, fontStyles ...string) {
 				log.ErrorFatal("Invalid font style (%s) for standard font supplied to SetFont.", fontStyle)
 			}
 		}
-		p.pdf.SetFont(fontIdentifier, styleStr, p.opts.FontSize)
+		p.pdf.SetFont(fontIdentifier, styleStr, p.fontSize)
 	} else {
 		var isBold bool
 		var isItalic bool
@@ -111,17 +108,6 @@ func (p *Pdfb) SetFont(fontIdentifier string, fontStyles ...string) {
 		if isBold && isItalic {
 			customStyle = "bolditalic"
 		}
-		p.pdf.SetFont(fontIdentifier+"__"+customStyle, styleStr, p.opts.FontSize)
+		p.pdf.SetFont(fontIdentifier+"__"+customStyle, styleStr, p.fontSize)
 	}
-}
-
-// SetFontSize is used to set the font size
-func (p *Pdfb) SetFontSize(fontSize float64) {
-	p.pdf.SetFontSize(fontSize)
-	p.opts.FontSize = fontSize
-}
-
-// ResetFont sets the font back to the font supplied in New
-func (p *Pdfb) ResetFont() {
-	p.pdf.SetFont(p.opts.FontFamily, "", p.opts.FontSize)
 }
