@@ -11,6 +11,22 @@ import (
 
 var err error
 
+// Font defines a font
+type Font struct {
+	Family        string
+	Size          float64
+	Bold          bool
+	Italic        bool
+	Underline     bool
+	Strikethrough bool
+}
+
+// TextAlign is used to define text with alignment
+type TextAlign struct {
+	Text  string
+	Align string
+}
+
 // Pdfb ...
 type Pdfb struct {
 	pdf         *gofpdf.Fpdf
@@ -23,8 +39,7 @@ type Pdfb struct {
 	subject     string
 	keywords    []string
 	margin      float64
-	fontFamily  string
-	fontSize    float64
+	font        Font
 	lineHeight  float64
 	background  string
 	foreground  string
@@ -32,6 +47,7 @@ type Pdfb struct {
 
 // New returns a PDF Builder
 func New() *Pdfb {
+	// PDF default options
 	p := &Pdfb{
 		gofpdf.New("P", "mm", "A4", ""),
 		func() {},
@@ -43,9 +59,8 @@ func New() *Pdfb {
 		"",
 		[]string{},
 		10.0,
-		"Arial",
-		12.0,
-		5.0,
+		Font{Family: "Arial", Size: 12.0},
+		6.0,
 		"#ffffff",
 		"#000000",
 	}
@@ -58,45 +73,197 @@ func New() *Pdfb {
 	p.pdf.SetCreator("github.com/barjoco/pdfb", true)
 	p.pdf.SetCellMargin(2)
 	p.pdf.SetMargins(p.margin-1, p.margin, p.margin-1) //subtract half of cellMargin
-	p.pdf.SetFontSize(p.fontSize)
+	p.pdf.SetFontSize(p.font.Size)
 	p.pdf.AliasNbPages("")
 	p.pdf.SetAutoPageBreak(true, p.margin)
-	p.pdf.SetFont(p.fontFamily, "", p.fontSize)
+	p.pdf.SetFont(p.font.Family, "", p.font.Size)
 
+	// bgFunc gets called in headerFunc, used to set the background
+	// colour of the document
 	p.bgFunc = func() {
 		w, h, _ := p.pdf.PageSize(p.pdf.PageNo())
 		currentR, currentG, currentB := p.pdf.GetFillColor()
-		p.Box(0, 0, w, h, p.background)
+		p.Box(0, 0, w, h, p.background, true, false)
 		p.pdf.SetFillColor(currentR, currentG, currentB)
 	}
 
+	// default header, does nothing except set the background colour
 	p.pdf.SetHeaderFunc(func() {
 		p.bgFunc()
 	})
 
 	p.SetForeground(p.foreground)
+	p.Page()
 
 	return p
 }
 
-// SetForeground ...
-func (p *Pdfb) SetForeground(hex string) {
-	fgRGB, err := colour.HexToRGB(hex)
-	log.ReportFatal(err)
-	p.pdf.SetTextColor(int(fgRGB.R), int(fgRGB.G), int(fgRGB.B))
-}
+// used to generate an align string
+func (p *Pdfb) makeAlignStr(alignInput string) (alignStr string) {
+	alignInput = strings.ToLower(alignInput)
 
-// Box ...
-func (p *Pdfb) Box(x, y, w, h float64, hex string) {
-	RGB, err := colour.HexToRGB(hex)
-	log.ReportFatal(err)
-	p.pdf.SetFillColor(int(RGB.R), int(RGB.G), int(RGB.B))
-	p.pdf.Rect(x, y, w, h, "F")
+	switch {
+	case alignInput == "l" || alignInput == "left":
+		alignStr = "L"
+	case alignInput == "c" || alignInput == "centre":
+		alignStr = "C"
+	case alignInput == "r" || alignInput == "right":
+		alignStr = "R"
+	default:
+		log.ErrorFatal("Invalid align input (%s)", alignInput)
+	}
+
+	return
 }
 
 // Page is used to insert a new page
 func (p *Pdfb) Page() {
 	p.pdf.AddPage()
+}
+
+// SetForeground is used to set the text colour
+func (p *Pdfb) SetForeground(hex string) {
+	r, g, b := colour.HexToRGB(hex)
+	p.pdf.SetTextColor(r, g, b)
+}
+
+// SetHeader is used to set the header
+func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
+	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
+	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
+	headerHeight := p.margin * 2
+
+	currentFont := p.fontCopy(p.font)
+
+	p.pdf.SetHeaderFunc(func() {
+		// used to draw the background colour
+		p.bgFunc()
+
+		// put the header at the top of the page
+		p.SetY(0)
+
+		// set font for header text
+		p.SetFont(Font{
+			Family: fontFamily,
+			Size:   12,
+		})
+
+		// create cells for each section
+		for _, c := range content {
+			p.pdf.CellFormat(sectionWidth, headerHeight, c.Text, "1", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
+		}
+
+		// set the font back to how it was
+		p.SetFont(currentFont)
+
+		// set cursor to the bottom of the header
+		p.pdf.SetX(p.margin)
+		p.pdf.SetY(headerHeight)
+	})
+}
+
+// SetFooter ...
+func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
+	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
+	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
+	footerHeight := p.margin * 2
+
+	currentFont := p.fontCopy(p.font)
+
+	p.pdf.SetFooterFunc(func() {
+		// set cursor to the position where the top of the footer starts drawing
+		p.SetY(pageHeight - footerHeight)
+
+		// set font for header text
+		p.SetFont(Font{
+			Family: fontFamily,
+			Size:   12,
+		})
+
+		// create cells for each section
+		for _, c := range content {
+			p.pdf.CellFormat(sectionWidth, footerHeight, c.Text, "1", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
+		}
+
+		// set the font back to how it was
+		p.SetFont(currentFont)
+	})
+
+	// set the space from the bottom where the auto page break gets triggered
+	p.pdf.SetAutoPageBreak(true, footerHeight)
+}
+
+// SetX is used to set the cursor's horizontal position
+func (p *Pdfb) SetX(x float64) {
+	p.pdf.SetX(x)
+}
+
+// SetY is used to set the cursor's vertical position
+func (p *Pdfb) SetY(y float64) {
+	p.pdf.SetY(y)
+}
+
+// TextBox ...
+func (p *Pdfb) TextBox(x, y, w, h, padding float64, str, align string, fill bool, border bool) {
+	currentCellMargin := p.pdf.GetCellMargin()
+
+	align = strings.ToLower(align)
+	alignStr := "M"
+
+	if align == "l" || align == "left" {
+		alignStr += "L"
+	} else if align == "c" || align == "center" {
+		alignStr += "C"
+	} else if align == "r" || align == "right" {
+		alignStr += "R"
+	} else {
+		log.ErrorFatal("Invalid alignment given to TextBox (%s)", align)
+	}
+
+	p.pdf.SetXY(x, y)
+	p.pdf.SetCellMargin(padding)
+	p.pdf.CellFormat(w, h, str, "", 1, alignStr, fill, 0, "")
+
+	p.pdf.SetCellMargin(currentCellMargin)
+}
+
+// Box is used to draw a box
+func (p *Pdfb) Box(x, y, w, h float64, hex string, fill, border bool) {
+	var styleStr string
+
+	if fill {
+		styleStr += "F"
+	}
+	if border {
+		styleStr += "D"
+	}
+
+	r, g, b := colour.HexToRGB(hex)
+	p.pdf.SetFillColor(r, g, b)
+	p.pdf.Rect(x, y, w, h, styleStr)
+}
+
+// Circle is used to draw a circle
+func (p *Pdfb) Circle(x, y, radius float64, hex string, fill, border bool) {
+	var styleStr string
+
+	if fill {
+		styleStr += "F"
+	}
+	if border {
+		styleStr += "D"
+	}
+
+	r, g, b := colour.HexToRGB(hex)
+	p.pdf.SetFillColor(r, g, b)
+	p.pdf.Circle(x, y, radius, styleStr)
+}
+
+// SetLine ...
+func (p *Pdfb) SetLine(hex string, weight float64) {
+	r, g, b := colour.HexToRGB(hex)
+	p.pdf.SetDrawColor(r, g, b)
+	p.pdf.SetLineWidth(weight)
 }
 
 // Ln is used to insert a new line
@@ -130,48 +297,32 @@ func (p *Pdfb) SaveAs(filePath string) {
 	log.Info("PDF saved to %s.", filePath)
 }
 
-// SetHeader ...
-// The height of the header is the height of the top margin + the line height
-func (p *Pdfb) SetHeader(leftText, centreText, rightText string) {
-	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
-	margin, _, _, _ := p.pdf.GetMargins()
-	sectionWidth := (pageWidth - margin*2) / 3
-	headerHeight := margin + p.lineHeight
-
-	p.pdf.SetHeaderFunc(func() {
-		// bgfunc is necessary, used for drawing the background colour rectangle
-		p.bgFunc()
-
-		// put the header at the top of the page
-		p.pdf.SetY(0)
-
-		// format header
-		p.pdf.CellFormat(sectionWidth, headerHeight, leftText, "", 0, "L", false, 0, "")
-		p.pdf.CellFormat(sectionWidth, headerHeight, centreText, "", 0, "C", false, 0, "")
-		p.pdf.CellFormat(sectionWidth, headerHeight, rightText, "", 0, "R", false, 0, "")
-
-		// set cursor to the height of the header + 1 new line
-		p.pdf.SetX(margin)
-		p.pdf.SetY(headerHeight + p.lineHeight)
-	})
+// Width gets the page width
+func (p *Pdfb) Width() float64 {
+	w, _ := p.pdf.GetPageSize()
+	return w
 }
 
-// SetFooter ...
-func (p *Pdfb) SetFooter() {
-	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
-	margin, _, _, _ := p.pdf.GetMargins()
-	sectionWidth := (pageWidth - margin*2)
-	footerHeight := margin + p.lineHeight
-
-	p.pdf.SetFooterFunc(func() {
-		// set cursor to the position where the top of the footer starts drawing
-		p.pdf.SetY(pageHeight - footerHeight)
-
-		// format footer
-		str := fmt.Sprintf("Page %d of {nb}", p.pdf.PageNo())
-		p.pdf.CellFormat(sectionWidth, footerHeight, str, "", 0, "C", false, 0, "")
-	})
-
-	// set the space from the bottom where the auto page break gets triggered
-	p.pdf.SetAutoPageBreak(true, footerHeight+p.lineHeight*0.75)
+// Height gets the page height
+func (p *Pdfb) Height() float64 {
+	_, h := p.pdf.GetPageSize()
+	return h
 }
+
+// SetLineHeight ...
+func (p *Pdfb) SetLineHeight(lineHeight float64) {
+	p.lineHeight = lineHeight
+}
+
+// Heading ...
+// func (p *Pdfb) Heading(level int, str string) {
+// 	currentFontSize := p.font.size
+// 	// newFontSize := 12 * (1 + float64(7-level)*0.25) // 12 being the default font size
+
+// 	// p.SetFont(p.fontFamily, newFontSize, "Bold")
+
+// 	p.WriteLn(str)
+
+// 	p.SetFontSize(currentFontSize)
+// 	// p.SetFont(p.fontFamily, 12)
+// }

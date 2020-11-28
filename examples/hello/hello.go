@@ -1,47 +1,86 @@
 package main
 
 import (
-	"os"
-
 	"github.com/barjoco/pdfb"
 )
 
 func main() {
 	pdf := pdfb.New()
 
-	pdf.DefineFonts(
-		pdfb.Font{
-			Identifier: "RobotoMono",
-			FontDir:    "~/.fonts/Roboto_Mono",
-			Styles: []pdfb.FontStyle{
-				{Name: "Regular", File: "RobotoMono-Regular"},
-				{Name: "Bold", File: "RobotoMono-Bold"},
-				{Name: "Italic", File: "RobotoMono-Italic"},
-				{Name: "BoldItalic", File: "RobotoMono-BoldItalic"},
-				{Name: "Thin", File: "RobotoMono-Thin"},
-			},
-		},
+	pdf.Circle(pdf.Width(), pdf.Height(), 150, "#fff5f5", true, false)
+	pdf.Box(0, 0, pdf.Width(), 6, "#f00", true, false)
+
+	pdf.SetY(80)
+
+	pdf.SetFontSize(15)
+	pdf.BoldLn("Demonstration of building PDFs using Pdfb")
+
+	pdf.SetFontSize(40)
+	pdf.BoldLn("Here is an example")
+
+	pdf.SetFontSize(15)
+	pdf.WriteLn("This is the front page")
+
+	pdf.Ln(8)
+
+	pdf.SetFontSize(-1)
+	pdf.WriteLn("By John Smith")
+
+	pdf.SetHeader(
+		"Arial",
+		pdfb.TextAlign{Text: "Left text", Align: "Left"},
+		pdfb.TextAlign{Text: "Centre text", Align: "c"},
+		pdfb.TextAlign{Text: "Right text", Align: "right"},
 	)
 
-	pdf.SetHeader("Left", "Centre", "Right")
-	pdf.SetFooter()
+	pdf.Page()
 
-	pdf.Page()
-	pdf.SetFont("RobotoMono", "BoldItalic", "Strikethrough")
-	pdf.Write("Hello %s ", os.Getenv("USER"))
-	pdf.SetFont("RobotoMono", "Thin", "underline")
-	pdf.WriteLn("and")
-	pdf.Write("welcome to ")
-	pdf.SetFont("Times")
-	pdf.Write("PDF Builder.")
-	pdf.Ln(2)
-	pdf.SetFont("Arial")
-	pdf.Write("Build PDF documents with ease.")
-	pdf.Ln(2)
-	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
-	pdf.Paragraph("Officia ex veniam et cillum Lorem velit. Excepteur velit est dolore commodo irure amet sit mollit labore. Officia enim sit proident aute veniam laboris id id quis sit cupidatat dolore. Lorem dolore tempor est anim ea aliqua in aliquip sunt incididunt veniam pariatur enim. Qui sint excepteur quis Lorem cillum voluptate eu duis.")
+	pdf.SetFooter(
+		"Arial",
+		pdfb.TextAlign{Text: "Left text", Align: "Left"},
+		pdfb.TextAlign{Text: "Centre text", Align: "c"},
+		pdfb.TextAlign{Text: "Right text", Align: "right"},
+	)
+
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	// pdf.Write("Build PDF documents with ease.")
+	// pdf.Ln(2)
+
+	// pdf.WriteLn("Showcasing headings")
+	// pdf.Ln(1)
+
+	// pdf.Heading(1, "Heading 1")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	// pdf.Heading(2, "Heading 2")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	// pdf.Heading(3, "Heading 3")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	// pdf.Heading(4, "Heading 4")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	// pdf.Heading(5, "Heading 5")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	// pdf.Heading(6, "Heading 6")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+
+	// pdf.Ln(1)
+
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud. Laborum consectetur exercitation nostrud exercitation anim culpa ullamco mollit aute nulla consectetur incididunt est tempor. Non enim non pariatur irure incididunt reprehenderit culpa in consectetur non cupidatat ea in nisi. Ea magna sunt minim non et qui sunt excepteur elit laborum id. Voluptate quis aliquip eu proident occaecat laborum nostrud nostrud sint ea eiusmod Lorem fugiat. Do culpa ut deserunt id aliquip sunt Lorem. Incididunt excepteur dolore est magna tempor enim quis cillum nisi quis laboris.")
+	// pdf.Paragraph("Officia ex veniam et cillum Lorem velit. Excepteur velit est dolore commodo irure amet sit mollit labore. Officia enim sit proident aute veniam laboris id id quis sit cupidatat dolore. Lorem dolore tempor est anim ea aliqua in aliquip sunt incididunt veniam pariatur enim. Qui sint excepteur quis Lorem cillum voluptate eu duis.")
 	// pdf.Table()
-	pdf.Page()
-	pdf.Write("New page")
+	// pdf.Page()
+	// pdf.Write("New page")
 	pdf.SaveAs("examples/hello/hello.pdf")
 }

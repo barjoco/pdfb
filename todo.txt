@@ -1,2 +1,3 @@
-textbox
-shape:circle
+- use the Pdfb struct to store everything being used, fonts, width, height, line height, everything
+
+- diregard custom fonts for now - focus on header, footer, headings

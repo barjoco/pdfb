@@ -1,113 +1,75 @@
 package pdfb
 
-import (
-	"strings"
-
-	"github.com/barjoco/utils/array"
-	"github.com/barjoco/utils/log"
-)
-
 var stdFonts = []string{"courier", "helvetica", "arial", "times", "symbol", "zapfdingbats"}
-var fonts = make(map[string]*Font)
 
-// Font defines a font
-// Identifier used to identify the font, eg. "RobotoMono"
-// FontDir is the directory the font is in, as well as its variants
-// Styles is a list of FontStyle
-type Font struct {
-	Identifier string
-	FontDir    string
-	Styles     []FontStyle
+// makes a font styleStr from the stored font style information
+func (p *Pdfb) makeFontStyleStr() (styleStr string) {
+	switch {
+	case p.font.Bold:
+		styleStr += "b"
+	case p.font.Italic:
+		styleStr += "i"
+	case p.font.Underline:
+		styleStr += "u"
+	case p.font.Strikethrough:
+		styleStr += "s"
+	}
+	return
 }
 
-// FontStyle defines the name of a font style, and the name
-// of the corresponding file. No need to include the .ttf part.
-// The font file must be in the directory defined in Font.
-// Eg. FontStyle{Name: "Thin", File: "RobotoMono-Thin"}
-type FontStyle struct {
-	Name string
-	File string
-}
-
-// DefineFonts is used to define one or more fonts
-func (p *Pdfb) DefineFonts(fonts ...Font) {
-	// loop over the supplied fonts
-	for _, font := range fonts {
-		p.pdf.SetFontLocation(expandHome(font.FontDir))
-		// fonts are stored in gofpdf using their font identifier
-		// combined with the style name (to lower)
-		// eg. robotomono__bold or robotomono__thin
-		for _, style := range font.Styles {
-			p.pdf.AddUTF8Font(strings.ToLower(font.Identifier+"__"+style.Name), "", style.File+".ttf")
-		}
+// creates a copy of a font with the same font properties
+func (p *Pdfb) fontCopy(f Font) Font {
+	return Font{
+		Family:        f.Family,
+		Size:          f.Size,
+		Bold:          f.Bold,
+		Italic:        f.Italic,
+		Underline:     f.Underline,
+		Strikethrough: f.Strikethrough,
 	}
 }
 
-// SetFont is used to set the font.
-//
-// fontIdentifier can be a standard font ("courier", "helvetica", "arial", "times", "symbol", "zapfdingbats")
-// or a custom font that you defined using DefineFont.
-//
-// fontStyles are any combination of bold, italic, bolditalic, underline, and strikethrough
-// Custom fonts can use 1 custom style + underline and/or strikethrough
-// Standard fonts can use any combination of the styles
-//
-// Eg.
-// SetFont("Courier", "bold", "italic", "underline", "strikethrough")
-// or
-// SetFont("RobotoMono", "thin", "underline", "strikethrough")
-func (p *Pdfb) SetFont(fontIdentifier string, fontStyles ...string) {
-	var styleStr string
-	fontIdentifier = strings.ToLower(fontIdentifier)
+// SetFont is used to set the font
+func (p *Pdfb) SetFont(font Font) {
+	p.font.Family = font.Family
+	p.font.Size = font.Size
+	p.font.Bold = font.Bold
+	p.font.Italic = font.Italic
+	p.font.Underline = font.Underline
+	p.font.Strikethrough = font.Strikethrough
 
-	// check if font is one of the standard fonts or not
-	if array.Contains(stdFonts, fontIdentifier) {
-		for _, fontStyle := range fontStyles {
-			switch strings.ToLower(fontStyle) {
-			case "bold":
-				styleStr += "b"
-			case "italic":
-				styleStr += "i"
-			case "bolditalic":
-				styleStr += "bi"
-			case "underline":
-				styleStr += "u"
-			case "strikethrough":
-				styleStr += "s"
-			default:
-				log.ErrorFatal("Invalid font style (%s) for standard font supplied to SetFont.", fontStyle)
-			}
-		}
-		p.pdf.SetFont(fontIdentifier, styleStr, p.fontSize)
-	} else {
-		var isBold bool
-		var isItalic bool
-		var customStyle string
-		for _, fontStyle := range fontStyles {
-			switch strings.ToLower(fontStyle) {
-			case "bold":
-				isBold = true
-				if customStyle == "" {
-					customStyle = fontStyle
-				}
-			case "italic":
-				isItalic = true
-				if customStyle == "" {
-					customStyle = fontStyle
-				}
-			case "underline":
-				styleStr += "u"
-			case "strikethrough":
-				styleStr += "s"
-			default:
-				if customStyle == "" {
-					customStyle = fontStyle
-				}
-			}
-		}
-		if isBold && isItalic {
-			customStyle = "bolditalic"
-		}
-		p.pdf.SetFont(fontIdentifier+"__"+customStyle, styleStr, p.fontSize)
+	p.SetFontSize(font.Size)
+	p.pdf.SetFont(font.Family, p.makeFontStyleStr(), font.Size)
+}
+
+// SetFontSize is used to set the font size
+func (p *Pdfb) SetFontSize(fontSize float64) {
+	if fontSize == -1 {
+		fontSize = 12
 	}
+
+	fontSizeIncrease := fontSize / p.font.Size
+
+	// scale lineHeight with increase/decrease of fontSize
+	p.lineHeight *= fontSizeIncrease
+
+	p.font.Size = fontSize
+	p.pdf.SetFontSize(fontSize)
+}
+
+// Bold is used to write in bold
+func (p *Pdfb) Bold(str string) {
+	p.font.Bold = true
+	p.SetFont(p.font)
+
+	p.Write(str)
+
+	p.font.Bold = false
+	p.SetFont(p.font)
+}
+
+// BoldLn is used to write in bold, then drop a line
+func (p *Pdfb) BoldLn(str string) {
+	p.Bold(str)
+	p.Ln(1)
 }
