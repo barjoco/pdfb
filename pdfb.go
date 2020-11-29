@@ -43,6 +43,8 @@ type Pdfb struct {
 	lineHeight  float64
 	background  string
 	foreground  string
+	hasHeader   bool
+	hasFooter   bool
 }
 
 // New returns a PDF Builder
@@ -63,6 +65,8 @@ func New() *Pdfb {
 		6.0,
 		"#ffffff",
 		"#000000",
+		false,
+		false,
 	}
 
 	// pdf initialisation
@@ -135,6 +139,8 @@ func (p *Pdfb) SetForeground(hex string) {
 
 // SetHeader is used to set the header
 func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
+	p.hasHeader = true
+
 	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
 	headerHeight := p.margin * 1.5
@@ -171,6 +177,8 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 
 // SetFooter is used to set the footer
 func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
+	p.hasFooter = true
+
 	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
 	footerHeight := p.margin * 1.5
@@ -285,13 +293,21 @@ func (p *Pdfb) SaveAs(filePath string) {
 func (p *Pdfb) Heading(level int, str string) {
 	// copy current font
 	currentFont := p.fontCopy(p.font)
+	currentLH := p.lineHeight
 
 	// set font and write content
 	p.SetFont(Font{
 		Family: p.font.Family,
 		Bold:   true,
-		Size:   12 * (1 + float64(7-level)*0.25), // 12 being the default font size
+		Size:   12 * (1 + float64(7-level)*0.15), // 12 being the default font size
 	})
+
+	// if the header + 1 line of currentFont text doesn't fit on the page before the footer,
+	// print a line, so it gets pushed to the next page
+	_, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
+	if p.hasHeader && (p.pdf.GetY()+p.lineHeight+currentLH) > (pageHeight-p.margin*1.5) {
+		p.Ln(1)
+	}
 
 	// write header
 	p.WriteLn(str)
