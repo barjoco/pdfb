@@ -31,14 +31,10 @@ func (p *Pdfb) fontCopy(f Font) Font {
 
 // SetFont is used to set the font
 func (p *Pdfb) SetFont(font Font) {
-	p.font.Family = font.Family
-	p.font.Size = font.Size
-	p.font.Bold = font.Bold
-	p.font.Italic = font.Italic
-	p.font.Underline = font.Underline
-	p.font.Strikethrough = font.Strikethrough
-
 	p.SetFontSize(font.Size)
+
+	p.font = font
+
 	p.pdf.SetFont(font.Family, p.makeFontStyleStr(), font.Size)
 }
 

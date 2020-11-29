@@ -58,7 +58,7 @@ func New() *Pdfb {
 		"Author",
 		"",
 		[]string{},
-		10.0,
+		20.0,
 		Font{Family: "Arial", Size: 12.0},
 		6.0,
 		"#ffffff",
@@ -116,6 +116,12 @@ func (p *Pdfb) makeAlignStr(alignInput string) (alignStr string) {
 	return
 }
 
+// SetMargin is used to set the margin
+func (p *Pdfb) SetMargin(margin float64) {
+	p.margin = margin
+	p.pdf.SetMargins(margin, margin, margin)
+}
+
 // Page is used to insert a new page
 func (p *Pdfb) Page() {
 	p.pdf.AddPage()
@@ -131,11 +137,12 @@ func (p *Pdfb) SetForeground(hex string) {
 func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
-	headerHeight := p.margin * 2
-
-	currentFont := p.fontCopy(p.font)
+	headerHeight := p.margin * 1.5
 
 	p.pdf.SetHeaderFunc(func() {
+		// copy the current font
+		currentFont := p.fontCopy(p.font)
+
 		// used to draw the background colour
 		p.bgFunc()
 
@@ -150,7 +157,7 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 
 		// create cells for each section
 		for _, c := range content {
-			p.pdf.CellFormat(sectionWidth, headerHeight, c.Text, "1", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
+			p.pdf.CellFormat(sectionWidth, headerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
 		}
 
 		// set the font back to how it was
@@ -162,15 +169,16 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 	})
 }
 
-// SetFooter ...
+// SetFooter is used to set the footer
 func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
-	footerHeight := p.margin * 2
-
-	currentFont := p.fontCopy(p.font)
+	footerHeight := p.margin * 1.5
 
 	p.pdf.SetFooterFunc(func() {
+		// copy the current font
+		currentFont := p.fontCopy(p.font)
+
 		// set cursor to the position where the top of the footer starts drawing
 		p.SetY(pageHeight - footerHeight)
 
@@ -182,7 +190,7 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 
 		// create cells for each section
 		for _, c := range content {
-			p.pdf.CellFormat(sectionWidth, footerHeight, c.Text, "1", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
+			p.pdf.CellFormat(sectionWidth, footerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
 		}
 
 		// set the font back to how it was
@@ -201,30 +209,6 @@ func (p *Pdfb) SetX(x float64) {
 // SetY is used to set the cursor's vertical position
 func (p *Pdfb) SetY(y float64) {
 	p.pdf.SetY(y)
-}
-
-// TextBox ...
-func (p *Pdfb) TextBox(x, y, w, h, padding float64, str, align string, fill bool, border bool) {
-	currentCellMargin := p.pdf.GetCellMargin()
-
-	align = strings.ToLower(align)
-	alignStr := "M"
-
-	if align == "l" || align == "left" {
-		alignStr += "L"
-	} else if align == "c" || align == "center" {
-		alignStr += "C"
-	} else if align == "r" || align == "right" {
-		alignStr += "R"
-	} else {
-		log.ErrorFatal("Invalid alignment given to TextBox (%s)", align)
-	}
-
-	p.pdf.SetXY(x, y)
-	p.pdf.SetCellMargin(padding)
-	p.pdf.CellFormat(w, h, str, "", 1, alignStr, fill, 0, "")
-
-	p.pdf.SetCellMargin(currentCellMargin)
 }
 
 // Box is used to draw a box
@@ -259,14 +243,14 @@ func (p *Pdfb) Circle(x, y, radius float64, hex string, fill, border bool) {
 	p.pdf.Circle(x, y, radius, styleStr)
 }
 
-// SetLine ...
+// SetLine is used to set the line colour and weight
 func (p *Pdfb) SetLine(hex string, weight float64) {
 	r, g, b := colour.HexToRGB(hex)
 	p.pdf.SetDrawColor(r, g, b)
 	p.pdf.SetLineWidth(weight)
 }
 
-// Ln is used to insert a new line
+// Ln is used to insert a new line (or multiple)
 func (p *Pdfb) Ln(lines int) {
 	for i := 0; i < lines; i++ {
 		p.pdf.Ln(p.lineHeight)
@@ -297,6 +281,25 @@ func (p *Pdfb) SaveAs(filePath string) {
 	log.Info("PDF saved to %s.", filePath)
 }
 
+// Heading is used to write headings of various levels
+func (p *Pdfb) Heading(level int, str string) {
+	// copy current font
+	currentFont := p.fontCopy(p.font)
+
+	// set font and write content
+	p.SetFont(Font{
+		Family: p.font.Family,
+		Bold:   true,
+		Size:   12 * (1 + float64(7-level)*0.25), // 12 being the default font size
+	})
+
+	// write header
+	p.WriteLn(str)
+
+	// set font back to how it was
+	p.SetFont(currentFont)
+}
+
 // Width gets the page width
 func (p *Pdfb) Width() float64 {
 	w, _ := p.pdf.GetPageSize()
@@ -308,21 +311,3 @@ func (p *Pdfb) Height() float64 {
 	_, h := p.pdf.GetPageSize()
 	return h
 }
-
-// SetLineHeight ...
-func (p *Pdfb) SetLineHeight(lineHeight float64) {
-	p.lineHeight = lineHeight
-}
-
-// Heading ...
-// func (p *Pdfb) Heading(level int, str string) {
-// 	currentFontSize := p.font.size
-// 	// newFontSize := 12 * (1 + float64(7-level)*0.25) // 12 being the default font size
-
-// 	// p.SetFont(p.fontFamily, newFontSize, "Bold")
-
-// 	p.WriteLn(str)
-
-// 	p.SetFontSize(currentFontSize)
-// 	// p.SetFont(p.fontFamily, 12)
-// }
