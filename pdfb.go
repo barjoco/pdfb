@@ -76,8 +76,7 @@ func New() *Pdfb {
 	p.pdf.SetSubject(p.subject, true)
 	p.pdf.SetKeywords(strings.Join(p.keywords, ";"), true)
 	p.pdf.SetCreator("github.com/barjoco/pdfb", true)
-	p.pdf.SetCellMargin(2)
-	p.pdf.SetMargins(p.margin-1, p.margin, p.margin-1) //subtract half of cellMargin
+	p.pdf.SetMargins(p.margin, p.margin, p.margin)
 	p.pdf.SetFontSize(p.font.Size)
 	p.pdf.AliasNbPages("")
 	p.pdf.SetAutoPageBreak(true, p.margin)
@@ -99,6 +98,8 @@ func New() *Pdfb {
 
 	p.SetForeground(p.foreground)
 	p.Page()
+
+	p.GetMargin()
 
 	return p
 }
@@ -127,15 +128,16 @@ func (p *Pdfb) SetMargin(margin float64) {
 	p.pdf.SetMargins(margin, margin, margin)
 }
 
+// GetMargin is used to set the margin
+func (p *Pdfb) GetMargin() float64 {
+	fmt.Println(p.pdf.GetMargins())
+	margin, _, _, _ := p.pdf.GetMargins()
+	return margin
+}
+
 // Page is used to insert a new page
 func (p *Pdfb) Page() {
 	p.pdf.AddPage()
-}
-
-// SetForeground is used to set the text colour
-func (p *Pdfb) SetForeground(hex string) {
-	r, g, b := colour.HexToRGB(hex)
-	p.pdf.SetTextColor(r, g, b)
 }
 
 // SetHeader is used to set the header
@@ -147,6 +149,9 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 	p.pdf.SetHeaderFunc(func() {
 		// copy the current font
 		currentFont := p.fontCopy(p.font)
+
+		// get current foreground
+		currentFG := p.foreground
 
 		// used to draw the background colour
 		p.bgFunc()
@@ -160,6 +165,9 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 			Size:   12,
 		})
 
+		// set foreground
+		p.SetForeground("#000")
+
 		// create cells for each section
 		for _, c := range content {
 			p.pdf.CellFormat(sectionWidth, p.headerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
@@ -167,6 +175,9 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 
 		// set the font back to how it was
 		p.SetFont(currentFont)
+
+		// set foreground back to how it was
+		p.SetForeground(currentFG)
 
 		// set cursor to the bottom of the header
 		p.pdf.SetX(p.margin)
@@ -188,6 +199,9 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 		// copy the current font
 		currentFont := p.fontCopy(p.font)
 
+		// get current foreground
+		currentFG := p.foreground
+
 		// set cursor to the position where the top of the footer starts drawing
 		p.SetY(pageHeight - p.footerHeight)
 
@@ -196,6 +210,9 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 			Family: fontFamily,
 			Size:   12,
 		})
+
+		// set foreground
+		p.SetForeground("#000")
 
 		// create cells for each section
 		for _, c := range content {
@@ -206,6 +223,9 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 
 		// set the font back to how it was
 		p.SetFont(currentFont)
+
+		// set foreground back to how it was
+		p.SetForeground(currentFG)
 	})
 
 	// set the space from the bottom where the auto page break gets triggered
@@ -220,6 +240,16 @@ func (p *Pdfb) SetX(x float64) {
 // SetY is used to set the cursor's vertical position
 func (p *Pdfb) SetY(y float64) {
 	p.pdf.SetY(y)
+}
+
+// GetX is used to set the cursor's horizontal position
+func (p *Pdfb) GetX() float64 {
+	return p.pdf.GetX()
+}
+
+// GetY is used to set the cursor's vertical position
+func (p *Pdfb) GetY() float64 {
+	return p.pdf.GetY()
 }
 
 // Box is used to draw a box
@@ -254,6 +284,19 @@ func (p *Pdfb) Circle(x, y, radius float64, hex string, fill, border bool) {
 	p.pdf.Circle(x, y, radius, styleStr)
 }
 
+// Line is used to draw lines from one point to another
+func (p *Pdfb) Line(fromX, fromY, toX, toY float64, hex string, weight float64) {
+	currentDrawR, currentDrawG, currentDrawB := p.pdf.GetDrawColor()
+	currentWeight := p.pdf.GetLineWidth()
+
+	p.pdf.SetDrawColor(colour.HexToRGB(hex))
+	p.pdf.SetLineWidth(weight)
+	p.pdf.Line(fromX, fromY, toX, toY)
+
+	p.pdf.SetDrawColor(currentDrawR, currentDrawG, currentDrawB)
+	p.pdf.SetLineWidth(currentWeight)
+}
+
 // SetLine is used to set the line colour and weight
 func (p *Pdfb) SetLine(hex string, weight float64) {
 	r, g, b := colour.HexToRGB(hex)
@@ -270,7 +313,8 @@ func (p *Pdfb) Ln(lines int) {
 
 // Write is used to write text to the page
 func (p *Pdfb) Write(format string, a ...interface{}) {
-	p.pdf.Write(p.lineHeight, fmt.Sprintf(format, a...))
+	text := fmt.Sprintf(format, a...)
+	p.pdf.Write(p.lineHeight, text)
 }
 
 // WriteLn is used to write text to the page (drop to next line after text)
@@ -285,7 +329,7 @@ func (p *Pdfb) Paragraph(format string, a ...interface{}) {
 	p.Ln(2)
 }
 
-// SaveAs ...
+// SaveAs is used to save the PDF document to a file
 func (p *Pdfb) SaveAs(filePath string) {
 	err := p.pdf.OutputFileAndClose(filePath)
 	log.ReportFatal(err)
@@ -297,6 +341,9 @@ func (p *Pdfb) Heading(level int, str string) {
 	// copy current font
 	currentFont := p.fontCopy(p.font)
 	currentLH := p.lineHeight
+	currentFG := p.foreground
+
+	p.SetForeground("#f00")
 
 	// set font and write content
 	p.SetFont(Font{
@@ -307,8 +354,6 @@ func (p *Pdfb) Heading(level int, str string) {
 
 	// check that the heading height + height of 1 line of regular text
 	// can fit before the end of the page(-margin) or the footer if present
-	// // get page height
-	_, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
 	// // choose whether bottomSpace should be end of page - margin
 	// // or the height of the footer
 	var bottomSpace float64
@@ -318,7 +363,11 @@ func (p *Pdfb) Heading(level int, str string) {
 		bottomSpace = p.margin
 	}
 	// // do the check and print line if necessary
-	if (p.pdf.GetY() + p.lineHeight + currentLH) > (pageHeight - bottomSpace) {
+	// // description of the check:
+	// // p.lineHeight = lineheight of the header
+	// // currentLH = lineheight of the previous text (and future text)
+	// // currentLH/4 = an extra quarter of a lineheight space for line
+	if (p.pdf.GetY() + p.lineHeight + currentLH + currentLH/4) > (p.Height() - bottomSpace) {
 		p.Ln(1)
 	}
 
@@ -327,6 +376,10 @@ func (p *Pdfb) Heading(level int, str string) {
 
 	// set font back to how it was
 	p.SetFont(currentFont)
+	p.SetForeground(currentFG)
+
+	// quarter of a lineHeight of space below headings
+	p.SetY(p.GetY() + p.lineHeight/4)
 }
 
 // Width gets the page width

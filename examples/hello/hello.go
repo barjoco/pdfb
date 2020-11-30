@@ -13,13 +13,16 @@ func main() {
 	pdf.SetY(80)
 
 	pdf.SetFontSize(15)
+	pdf.SetForeground("#f00")
 	pdf.BoldLn("Demonstration of building PDFs using Pdfb")
 
 	pdf.SetFontSize(40)
+	pdf.SetForeground("#000")
 	pdf.BoldLn("Here is an example")
+	pdf.SetFontSize(-1)
 
-	pdf.SetFontSize(15)
-	pdf.WriteLn("This is the front page")
+	pdf.Ln(1)
+	pdf.Box(pdf.GetX(), pdf.GetY(), 60, 6, "#f00", true, false)
 
 	pdf.Ln(8)
 

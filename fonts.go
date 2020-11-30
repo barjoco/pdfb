@@ -1,5 +1,7 @@
 package pdfb
 
+import "github.com/barjoco/utils/colour"
+
 var stdFonts = []string{"courier", "helvetica", "arial", "times", "symbol", "zapfdingbats"}
 
 // makes a font styleStr from the stored font style information
@@ -51,6 +53,12 @@ func (p *Pdfb) SetFontSize(fontSize float64) {
 
 	p.font.Size = fontSize
 	p.pdf.SetFontSize(fontSize)
+}
+
+// SetForeground is used to set the text colour
+func (p *Pdfb) SetForeground(hex string) {
+	p.foreground = hex
+	p.pdf.SetTextColor(colour.HexToRGB(hex))
 }
 
 // Bold is used to write in bold
