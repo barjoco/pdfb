@@ -175,6 +175,10 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 }
 
 // SetFooter is used to set the footer
+// The page number and number of pages can be used in the footer
+// using {pages} and {pages}.
+//
+// Eg. "Page {page} of {pages}"
 func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
