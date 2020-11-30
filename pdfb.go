@@ -2,6 +2,7 @@ package pdfb
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/barjoco/utils/colour"
@@ -29,22 +30,22 @@ type TextAlign struct {
 
 // Pdfb ...
 type Pdfb struct {
-	pdf         *gofpdf.Fpdf
-	bgFunc      func()
-	orientation string
-	units       string
-	pageSize    string
-	title       string
-	author      string
-	subject     string
-	keywords    []string
-	margin      float64
-	font        Font
-	lineHeight  float64
-	background  string
-	foreground  string
-	hasHeader   bool
-	hasFooter   bool
+	pdf          *gofpdf.Fpdf
+	bgFunc       func()
+	orientation  string
+	units        string
+	pageSize     string
+	title        string
+	author       string
+	subject      string
+	keywords     []string
+	margin       float64
+	font         Font
+	lineHeight   float64
+	background   string
+	foreground   string
+	headerHeight float64
+	footerHeight float64
 }
 
 // New returns a PDF Builder
@@ -65,8 +66,8 @@ func New() *Pdfb {
 		6.0,
 		"#ffffff",
 		"#000000",
-		false,
-		false,
+		0,
+		0,
 	}
 
 	// pdf initialisation
@@ -139,11 +140,9 @@ func (p *Pdfb) SetForeground(hex string) {
 
 // SetHeader is used to set the header
 func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
-	p.hasHeader = true
-
 	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
-	headerHeight := p.margin * 1.5
+	p.headerHeight = p.margin * 1.5
 
 	p.pdf.SetHeaderFunc(func() {
 		// copy the current font
@@ -163,7 +162,7 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 
 		// create cells for each section
 		for _, c := range content {
-			p.pdf.CellFormat(sectionWidth, headerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
+			p.pdf.CellFormat(sectionWidth, p.headerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
 		}
 
 		// set the font back to how it was
@@ -171,24 +170,22 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 
 		// set cursor to the bottom of the header
 		p.pdf.SetX(p.margin)
-		p.pdf.SetY(headerHeight)
+		p.pdf.SetY(p.headerHeight)
 	})
 }
 
 // SetFooter is used to set the footer
 func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
-	p.hasFooter = true
-
 	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
-	footerHeight := p.margin * 1.5
+	p.footerHeight = p.margin * 1.5
 
 	p.pdf.SetFooterFunc(func() {
 		// copy the current font
 		currentFont := p.fontCopy(p.font)
 
 		// set cursor to the position where the top of the footer starts drawing
-		p.SetY(pageHeight - footerHeight)
+		p.SetY(pageHeight - p.footerHeight)
 
 		// set font for header text
 		p.SetFont(Font{
@@ -198,7 +195,9 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 
 		// create cells for each section
 		for _, c := range content {
-			p.pdf.CellFormat(sectionWidth, footerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
+			c.Text = strings.ReplaceAll(c.Text, "{page}", strconv.Itoa(p.pdf.PageNo()))
+			c.Text = strings.ReplaceAll(c.Text, "{pages}", "{nb}")
+			p.pdf.CellFormat(sectionWidth, p.footerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
 		}
 
 		// set the font back to how it was
@@ -206,7 +205,7 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 	})
 
 	// set the space from the bottom where the auto page break gets triggered
-	p.pdf.SetAutoPageBreak(true, footerHeight)
+	p.pdf.SetAutoPageBreak(true, p.footerHeight)
 }
 
 // SetX is used to set the cursor's horizontal position
@@ -302,10 +301,20 @@ func (p *Pdfb) Heading(level int, str string) {
 		Size:   12 * (1 + float64(7-level)*0.15), // 12 being the default font size
 	})
 
-	// if the header + 1 line of currentFont text doesn't fit on the page before the footer,
-	// print a line, so it gets pushed to the next page
+	// check that the heading height + height of 1 line of regular text
+	// can fit before the end of the page(-margin) or the footer if present
+	// // get page height
 	_, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
-	if p.hasHeader && (p.pdf.GetY()+p.lineHeight+currentLH) > (pageHeight-p.margin*1.5) {
+	// // choose whether bottomSpace should be end of page - margin
+	// // or the height of the footer
+	var bottomSpace float64
+	if p.footerHeight > 0 {
+		bottomSpace = p.footerHeight
+	} else {
+		bottomSpace = p.margin
+	}
+	// // do the check and print line if necessary
+	if (p.pdf.GetY() + p.lineHeight + currentLH) > (pageHeight - bottomSpace) {
 		p.Ln(1)
 	}
 
