@@ -28,6 +28,14 @@ type TextAlign struct {
 	Align string
 }
 
+// heading is used to define a heading
+type heading struct {
+	text  string
+	level int
+	page  int
+	link  int
+}
+
 // Pdfb ...
 type Pdfb struct {
 	pdf          *gofpdf.Fpdf
@@ -46,6 +54,8 @@ type Pdfb struct {
 	foreground   string
 	headerHeight float64
 	footerHeight float64
+	headings     []heading
+	tocPage      int
 }
 
 // New returns a PDF Builder
@@ -68,6 +78,8 @@ func New() *Pdfb {
 		"#000000",
 		0,
 		0,
+		[]heading{},
+		-1,
 	}
 
 	// pdf initialisation
@@ -96,10 +108,8 @@ func New() *Pdfb {
 		p.bgFunc()
 	})
 
+	// set foreground
 	p.SetForeground(p.foreground)
-	p.Page()
-
-	p.GetMargin()
 
 	return p
 }
@@ -130,7 +140,6 @@ func (p *Pdfb) SetMargin(margin float64) {
 
 // GetMargin is used to set the margin
 func (p *Pdfb) GetMargin() float64 {
-	fmt.Println(p.pdf.GetMargins())
 	margin, _, _, _ := p.pdf.GetMargins()
 	return margin
 }
@@ -144,7 +153,7 @@ func (p *Pdfb) Page() {
 func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 	pageWidth, _, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
-	p.headerHeight = p.margin * 1.5
+	p.headerHeight = 25.0
 
 	p.pdf.SetHeaderFunc(func() {
 		// copy the current font
@@ -193,9 +202,16 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 	pageWidth, pageHeight, _ := p.pdf.PageSize(p.pdf.PageNo())
 	sectionWidth := (pageWidth - p.margin*2) / float64(len(content))
-	p.footerHeight = p.margin * 1.5
+	p.footerHeight = 25.0
+
+	triggeredPage := p.pdf.PageNo()
 
 	p.pdf.SetFooterFunc(func() {
+		// don't run on the page that SetFooter was called on
+		if p.pdf.PageNo() == triggeredPage {
+			return
+		}
+
 		// copy the current font
 		currentFont := p.fontCopy(p.font)
 
@@ -331,6 +347,62 @@ func (p *Pdfb) Paragraph(format string, a ...interface{}) {
 
 // SaveAs is used to save the PDF document to a file
 func (p *Pdfb) SaveAs(filePath string) {
+	// go back and write the ToC if necessary
+	if p.tocPage > 0 {
+		p.pdf.SetPage(p.tocPage)
+		p.SetY(p.headerHeight)
+		p.Heading(1, "Contents")
+		p.lineHeight *= 1.5
+		// slice is capped at the end because 'Contents' itself
+		// is a heading
+		for _, heading := range p.headings[:len(p.headings)-1] {
+			// bold for headingText and headingPage
+			p.font.Bold = true
+			p.SetFont(p.font)
+
+			// heading text
+			headingTextWidth := p.pdf.GetStringWidth(heading.text)
+			headingTextSpaces := strings.Repeat("    ", heading.level-1)
+			headingTextWithSpaces := headingTextSpaces + heading.text
+			headingTextWithSpacesWidth := p.pdf.GetStringWidth(headingTextWithSpaces)
+
+			// heading page
+			headingPage := strconv.Itoa(heading.page)
+			headingPageWidth := p.pdf.GetStringWidth(headingPage)
+
+			// dots
+			p.font.Bold = false
+			p.SetFont(p.font)
+			pageWidth := p.Width() - p.margin*2
+			dotSpace := pageWidth - headingTextWithSpacesWidth - headingPageWidth
+			var dots string
+			for {
+				if p.pdf.GetStringWidth(dots) >= dotSpace-p.pdf.GetStringWidth("...") {
+					break
+				}
+				dots += "."
+			}
+
+			// print
+
+			p.font.Bold = true
+			p.SetFont(p.font)
+			p.Write(headingTextSpaces)
+			p.pdf.CellFormat(headingTextWidth, p.lineHeight, heading.text, "", 0, "L", false, heading.link, "")
+
+			p.font.Bold = false
+			p.SetFont(p.font)
+			p.Write(dots)
+
+			p.font.Bold = true
+			p.SetFont(p.font)
+			p.pdf.WriteAligned(0, p.lineHeight, headingPage, "R")
+			p.Ln(1)
+		}
+		p.pdf.SetPage(p.pdf.PageCount())
+	}
+
+	// output file
 	err := p.pdf.OutputFileAndClose(filePath)
 	log.ReportFatal(err)
 	log.Info("PDF saved to %s.", filePath)
@@ -338,12 +410,16 @@ func (p *Pdfb) SaveAs(filePath string) {
 
 // Heading is used to write headings of various levels
 func (p *Pdfb) Heading(level int, str string) {
+	// create heading link
+	headingLink := p.pdf.AddLink()
+	p.pdf.SetLink(headingLink, p.GetY(), p.pdf.PageNo())
+
+	// add bookmark
+	p.pdf.Bookmark(str, level-1, -1)
+
 	// copy current font
 	currentFont := p.fontCopy(p.font)
 	currentLH := p.lineHeight
-	currentFG := p.foreground
-
-	p.SetForeground("#f00")
 
 	// set font and write content
 	p.SetFont(Font{
@@ -376,10 +452,12 @@ func (p *Pdfb) Heading(level int, str string) {
 
 	// set font back to how it was
 	p.SetFont(currentFont)
-	p.SetForeground(currentFG)
 
 	// quarter of a lineHeight of space below headings
 	p.SetY(p.GetY() + p.lineHeight/4)
+
+	// add heading to headings array
+	p.headings = append(p.headings, heading{str, level, p.pdf.PageNo(), headingLink})
 }
 
 // Width gets the page width
@@ -392,4 +470,13 @@ func (p *Pdfb) Width() float64 {
 func (p *Pdfb) Height() float64 {
 	_, h := p.pdf.GetPageSize()
 	return h
+}
+
+// ToC is used to generate table of contents from headings
+func (p *Pdfb) ToC() {
+	// insert a new page, then go to the next page, leaving
+	// a blank page for the ToC
+	p.Page()
+	p.tocPage = p.pdf.PageNo()
+	p.Page()
 }
