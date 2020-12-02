@@ -7,6 +7,10 @@ import (
 func main() {
 	pdf := pdfb.New()
 
+	//
+	//	Front page
+	//
+
 	pdf.Page()
 
 	pdf.Circle(pdf.Width(), pdf.Height(), 150, "#fff5f5", true, false)
@@ -31,22 +35,31 @@ func main() {
 	pdf.SetFontSize(-1)
 	pdf.WriteLn("By John Smith")
 
+	//
+	//	Headers and footers
+	//
+
 	pdf.SetHeader(
-		"Arial",
+		"Inter",
 		pdfb.TextAlign{Text: "Left text", Align: "Left"},
 		pdfb.TextAlign{Text: "Centre text", Align: "c"},
 		pdfb.TextAlign{Text: "Right text", Align: "right"},
 	)
 
 	pdf.SetFooter(
-		"Arial",
+		"Inter",
 		pdfb.TextAlign{Text: "Page {page} of {pages}", Align: "Centre"},
 	)
 
+	//
+	//	Table of Contents
+	//
+
 	pdf.ToC(1)
 
-	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
-	pdf.Paragraph("Build PDF documents with ease.")
+	//
+	//	Headings
+	//
 
 	pdf.Heading(1, "Heading 1")
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
@@ -61,9 +74,11 @@ func main() {
 	pdf.Heading(6, "Heading 6")
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
 
-	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	//
+	//	Lists
+	//
 
-	pdf.Heading(1, "Example of lists")
+	pdf.Heading(1, "Lists")
 
 	pdf.List(
 		[]pdfb.ListItem{
@@ -85,16 +100,93 @@ func main() {
 			{Level: 2, Text: "Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat."},
 		},
 	)
-
 	pdf.Ln(1)
+
+	//
+	//	Images
+	//
+
 	pdf.Heading(1, "Images")
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
 
-	pdf.Ln(1)
-	pdf.Image("fish.png", "c", pdf.GetX(), pdf.GetY(), 0, 30)
+	pdf.Image("fish.png", "c", pdf.GetX(), pdf.GetY(), 0, 70)
 
 	pdf.Ln(1)
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+
+	//
+	//	Custom fonts
+	//
+
+	pdf.Heading(1, "Custom fonts")
+
+	pdf.ImportFont("RobotoMono", "./RobotoMono",
+		[]pdfb.FontStyle{
+			{File: "RobotoMono-Regular.ttf", Style: ""},
+			{File: "RobotoMono-Bold.ttf", Style: "Bold"},
+			{File: "RobotoMono-Italic.ttf", Style: "Italic"},
+			{File: "RobotoMono-BoldItalic.ttf", Style: "BoldItalic"},
+		},
+	)
+
+	pdf.SetFont(pdfb.Font{Family: "RobotoMono"})
+	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+
+	pdf.Write("Here is some ")
+	pdf.BoldLn("bold text.")
+
+	pdf.Write("Here is some ")
+	pdf.ItalicLn("italic text.")
+
+	pdf.Write("Here is some ")
+	pdf.BoldItalicLn("bold italic text.")
+
+	pdf.Write("Here is some ")
+	pdf.SetFont(pdfb.Font{Bold: true, Underline: true})
+	pdf.WriteLn("bold underline text.")
+	pdf.SetFont(pdfb.Font{})
+
+	pdf.Write("Here is some ")
+	pdf.SetFont(pdfb.Font{Italic: true, Strikethrough: true})
+	pdf.WriteLn("italic strikethrough text.")
+	pdf.SetFont(pdfb.Font{})
+
+	pdf.ImportFont("RobotoMonoThin", "./RobotoMono",
+		[]pdfb.FontStyle{
+			{File: "RobotoMono-Thin.ttf", Style: ""},
+		},
+	)
+
+	pdf.Write("Here is some ")
+	pdf.SetFont(pdfb.Font{Family: "RobotoMonoThin"})
+	pdf.WriteLn("custom styled font.")
+	pdf.SetFont(pdfb.Font{Family: "RobotoMono"})
+
+	pdf.Ln(1)
+
+	pdf.Heading(2, "Heading with custom font")
+	pdf.WriteLn("List with custom font:")
+	pdf.List(
+		[]pdfb.ListItem{
+			{Level: 1, Text: "Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat."},
+			{Level: 2, Text: "Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat."},
+			{Level: 3, Text: "Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat."},
+			{Level: 2, Text: "Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat."},
+			{Level: 1, Text: "Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat."},
+		},
+	)
+
+	pdf.SetFont(pdfb.Font{Family: "Default"})
+	pdf.Ln(1)
+
+	pdf.Heading(2, "Hyperlinks")
+
+	pdf.Write("Here is a ")
+	pdf.Hyperlink("hyperlink", "https://github.com/barjoco/pdfb")
+	pdf.WriteLn(" to the Pdfb repo.")
+
+	// Set back to default font
+	pdf.SetFont(pdfb.Font{Family: "Inter"})
 
 	pdf.SaveAs("examples/hello/hello.pdf")
 }

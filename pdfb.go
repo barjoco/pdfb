@@ -1,11 +1,13 @@
 package pdfb
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/barjoco/utils/colour"
+	"github.com/barjoco/utils/inter"
 	"github.com/barjoco/utils/log"
 	"github.com/jung-kurt/gofpdf"
 )
@@ -38,24 +40,25 @@ type heading struct {
 
 // Pdfb is the main Pdfb struct
 type Pdfb struct {
-	pdf          *gofpdf.Fpdf
-	bgFunc       func()
-	orientation  string
-	units        string
-	pageSize     string
-	title        string
-	author       string
-	subject      string
-	keywords     []string
-	margin       float64
-	font         Font
-	lineHeight   float64
-	background   string
-	foreground   string
-	headerHeight float64
-	footerHeight float64
-	headings     []heading
-	tocPage      int
+	pdf             *gofpdf.Fpdf
+	bgFunc          func()
+	orientation     string
+	units           string
+	pageSize        string
+	title           string
+	author          string
+	subject         string
+	keywords        []string
+	margin          float64
+	font            Font
+	lineHeight      float64
+	background      string
+	foreground      string
+	headerHeight    float64
+	footerHeight    float64
+	headings        []heading
+	tocPage         int
+	writingContents bool
 }
 
 // New returns a PDF Builder
@@ -72,7 +75,7 @@ func New() *Pdfb {
 		"",
 		[]string{},
 		20.0,
-		Font{Family: "Arial", Size: 12.0},
+		Font{Family: "Inter", Size: 12.0},
 		6.0,
 		"#ffffff",
 		"#000000",
@@ -80,7 +83,14 @@ func New() *Pdfb {
 		0,
 		[]heading{},
 		-1,
+		false,
 	}
+
+	// import inter to be used as the default font
+	p.pdf.AddUTF8FontFromBytes("Inter", "", decode(inter.InterRegular))
+	p.pdf.AddUTF8FontFromBytes("Inter", "b", decode(inter.InterBold))
+	p.pdf.AddUTF8FontFromBytes("Inter", "i", decode(inter.InterItalic))
+	p.pdf.AddUTF8FontFromBytes("Inter", "bi", decode(inter.InterBoldItalic))
 
 	// pdf initialisation
 	p.pdf.SetTitle(p.title, true)
@@ -112,6 +122,14 @@ func New() *Pdfb {
 	p.SetForeground(p.foreground)
 
 	return p
+}
+
+func decode(b64Str string) (b []byte) {
+	b, err := base64.StdEncoding.DecodeString(b64Str)
+	if err != nil {
+		log.ErrorFatal("%s", err)
+	}
+	return
 }
 
 // used to generate an align string
@@ -363,6 +381,7 @@ func (p *Pdfb) SaveAs(filePath string) {
 
 	// go back and write the ToC if necessary
 	if p.tocPage > 0 {
+		p.writingContents = true
 		p.pdf.SetPage(p.tocPage)
 		p.SetY(p.headerHeight)
 		p.Heading(1, "Contents")
@@ -377,8 +396,7 @@ func (p *Pdfb) SaveAs(filePath string) {
 				headingsPerPage = i
 				headingsPerPageSet = true
 			}
-			if headingsPerPageSet && (i)%headingsPerPage == 0 {
-				fmt.Println("overflowed")
+			if headingsPerPageSet && i%headingsPerPage == 0 {
 				p.pdf.SetPage(p.pdf.PageNo() + 1)
 				p.SetY(p.headerHeight)
 			}
@@ -431,6 +449,7 @@ func (p *Pdfb) SaveAs(filePath string) {
 	}
 
 	// output file
+	fmt.Println("Saving PDF...")
 	err := p.pdf.OutputFileAndClose(filePath)
 	log.ReportFatal(err)
 	log.Info("PDF saved to %s.", filePath)
@@ -443,7 +462,9 @@ func (p *Pdfb) Heading(level int, str string) {
 	p.pdf.SetLink(headingLink, p.GetY(), p.pdf.PageNo())
 
 	// add bookmark
-	p.pdf.Bookmark(str, level-1, -1)
+	if !p.writingContents {
+		p.pdf.Bookmark(str, level-1, -1)
+	}
 
 	// copy current font
 	currentFont := p.fontCopy(p.font)
@@ -600,4 +621,16 @@ func (p *Pdfb) Image(filename, align string, x, y, w, h float64) {
 
 	// draw image
 	p.pdf.Image(filename, x, y, w, h, true, "", 0, "")
+}
+
+// Debug is used for debugging purposes
+func (p *Pdfb) Debug(str string) {
+	fmt.Println(str)
+}
+
+// Hyperlink is used to print hyperlinks
+func (p *Pdfb) Hyperlink(displayText, url string) {
+	p.SetForeground("#00f")
+	p.pdf.WriteLinkString(p.lineHeight, displayText, url)
+	p.SetForeground("#000")
 }
