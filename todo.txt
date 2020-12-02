@@ -1,3 +1,5 @@
-- use the Pdfb struct to store everything being used, fonts, width, height, line height, everything
+- nested numbered lists
+- hyperlinks
 
-- diregard custom fonts for now - focus on header, footer, headings
+
+- custom fonts

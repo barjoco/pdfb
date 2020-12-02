@@ -36,7 +36,7 @@ type heading struct {
 	link  int
 }
 
-// Pdfb ...
+// Pdfb is the main Pdfb struct
 type Pdfb struct {
 	pdf          *gofpdf.Fpdf
 	bgFunc       func()
@@ -232,9 +232,21 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 
 		// create cells for each section
 		for _, c := range content {
-			c.Text = strings.ReplaceAll(c.Text, "{page}", strconv.Itoa(p.pdf.PageNo()))
-			c.Text = strings.ReplaceAll(c.Text, "{pages}", "{nb}")
-			p.pdf.CellFormat(sectionWidth, p.footerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
+			// deal with offset caused by width of text being calculated
+			// with the {page} and {pages} aliases (resulting text is shorter)
+			var offset float64
+			if strings.Contains(c.Text, "{page}") {
+				c.Text = strings.ReplaceAll(c.Text, "{page}", strconv.Itoa(p.pdf.PageNo()))
+				offset += p.pdf.GetStringWidth("{page}")
+			}
+			if strings.Contains(c.Text, "{pages}") {
+				offset += p.pdf.GetStringWidth("{pages}")
+			}
+			offset /= 2
+			offset -= p.pdf.GetStringWidth("00") / 2
+			p.SetX(p.GetX() + offset)
+			// print
+			p.pdf.CellFormat(sectionWidth-offset, p.footerHeight, c.Text, "", 0, "M"+p.makeAlignStr(c.Align), false, 0, "")
 		}
 
 		// set the font back to how it was
@@ -347,15 +359,30 @@ func (p *Pdfb) Paragraph(format string, a ...interface{}) {
 
 // SaveAs is used to save the PDF document to a file
 func (p *Pdfb) SaveAs(filePath string) {
+	p.pdf.RegisterAlias("{pages}", strconv.Itoa(p.pdf.PageCount()))
+
 	// go back and write the ToC if necessary
 	if p.tocPage > 0 {
 		p.pdf.SetPage(p.tocPage)
 		p.SetY(p.headerHeight)
 		p.Heading(1, "Contents")
 		p.lineHeight *= 1.5
+		var headingsPerPage int
+		var headingsPerPageSet bool
 		// slice is capped at the end because 'Contents' itself
 		// is a heading
-		for _, heading := range p.headings[:len(p.headings)-1] {
+		for i, heading := range p.headings[:len(p.headings)-1] {
+			// handle overflows onto the next page
+			if !headingsPerPageSet && (p.GetY()+p.lineHeight) > (p.Height()-p.footerHeight) {
+				headingsPerPage = i
+				headingsPerPageSet = true
+			}
+			if headingsPerPageSet && (i)%headingsPerPage == 0 {
+				fmt.Println("overflowed")
+				p.pdf.SetPage(p.pdf.PageNo() + 1)
+				p.SetY(p.headerHeight)
+			}
+
 			// bold for headingText and headingPage
 			p.font.Bold = true
 			p.SetFont(p.font)
@@ -363,6 +390,7 @@ func (p *Pdfb) SaveAs(filePath string) {
 			// heading text
 			headingTextWidth := p.pdf.GetStringWidth(heading.text)
 			headingTextSpaces := strings.Repeat("    ", heading.level-1)
+			headingTextSpacesWidth := p.pdf.GetStringWidth(headingTextSpaces)
 			headingTextWithSpaces := headingTextSpaces + heading.text
 			headingTextWithSpacesWidth := p.pdf.GetStringWidth(headingTextWithSpaces)
 
@@ -387,7 +415,7 @@ func (p *Pdfb) SaveAs(filePath string) {
 
 			p.font.Bold = true
 			p.SetFont(p.font)
-			p.Write(headingTextSpaces)
+			p.SetX(p.GetX() + headingTextSpacesWidth)
 			p.pdf.CellFormat(headingTextWidth, p.lineHeight, heading.text, "", 0, "L", false, heading.link, "")
 
 			p.font.Bold = false
@@ -473,10 +501,103 @@ func (p *Pdfb) Height() float64 {
 }
 
 // ToC is used to generate table of contents from headings
-func (p *Pdfb) ToC() {
+func (p *Pdfb) ToC(numPages int) {
 	// insert a new page, then go to the next page, leaving
 	// a blank page for the ToC
 	p.Page()
 	p.tocPage = p.pdf.PageNo()
-	p.Page()
+	for i := 0; i < numPages; i++ {
+		p.Page()
+	}
+}
+
+// ListItem defines an item to use in the List function
+type ListItem struct {
+	Level int
+	Text  string
+}
+
+// List is used for writing lists
+func (p *Pdfb) List(items []ListItem) {
+	// copy current font
+	currentFont := p.fontCopy(p.font)
+	maxIndent := 10
+
+	// loop through list items
+	for _, item := range items {
+		// indent in from margin (indents stop at level 8)
+		if item.Level <= maxIndent {
+			p.SetX(p.GetX() + float64(8*(item.Level)))
+		} else {
+			p.SetX(p.GetX() + float64(8*maxIndent))
+		}
+
+		// switch to symbol font
+		p.font.Family = "zapfdingbats"
+		p.SetFont(p.font)
+
+		// switch case for bullet type
+		if item.Level <= maxIndent {
+			switch {
+			case item.Level == 1 || item.Level%3 == 1:
+				p.font.Size -= 5
+				p.SetFont(p.font)
+				p.Write("\x6c")
+			case item.Level == 2 || item.Level%3 == 2:
+				p.font.Size -= 6
+				p.SetFont(p.font)
+				p.Write("\x6d ")
+			case item.Level == 3 || item.Level%3 == 0:
+				p.font.Size -= 5
+				p.SetFont(p.font)
+				p.Write("\x6e")
+			}
+		} else {
+			p.font.Size -= 5
+			p.SetFont(p.font)
+			p.Write("\x6c")
+		}
+
+		// small indent in from the bullet symbol
+		p.SetX(p.GetX() + 5)
+
+		// change back to current font
+		p.font.Size = currentFont.Size
+		p.SetFont(currentFont)
+
+		// print
+		p.pdf.MultiCell(0, p.lineHeight, item.Text, "", "", false)
+
+		// move down a little bit after each list item
+		p.SetY(p.GetY() + 1)
+	}
+}
+
+// Image is used to insert an image
+// Use 0 in place of w or h to keep the aspect ratio
+func (p *Pdfb) Image(filename, align string, x, y, w, h float64) {
+	// calc w and/or h values if 0 is given
+	if w == 0 {
+		info := p.pdf.RegisterImage("fish.png", "")
+		w = h * info.Width() / info.Height()
+	}
+	if h == 0 {
+		info := p.pdf.RegisterImage("fish.png", "")
+		h = w * info.Height() / info.Width()
+	}
+
+	// align image for left, right, or centre
+	align = strings.ToLower(align)
+	switch {
+	case align == "l" || align == "left" || align == "":
+	case align == "c" || align == "centre":
+		x = p.GetX() + (p.Width()-p.margin*2)/2 - w/2
+	case align == "r" || align == "right":
+		x = p.Width() - p.margin - w
+	default:
+		log.ErrorFatal("Invalid alignment supplied to Image (%s)", align)
+	}
+
+	// draw image
+	p.pdf.Image(filename, x, y, w, h, true, "", 0, "")
 }
