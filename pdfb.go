@@ -1,6 +1,7 @@
 package pdfb
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"strconv"
@@ -59,6 +60,7 @@ type Pdfb struct {
 	headings        []heading
 	tocPage         int
 	writingContents bool
+	accentColour    string
 }
 
 // New returns a PDF Builder
@@ -84,6 +86,7 @@ func New() *Pdfb {
 		[]heading{},
 		-1,
 		false,
+		"#f00",
 	}
 
 	// import inter to be used as the default font
@@ -377,76 +380,7 @@ func (p *Pdfb) Paragraph(format string, a ...interface{}) {
 
 // SaveAs is used to save the PDF document to a file
 func (p *Pdfb) SaveAs(filePath string) {
-	p.pdf.RegisterAlias("{pages}", strconv.Itoa(p.pdf.PageCount()))
-
-	// go back and write the ToC if necessary
-	if p.tocPage > 0 {
-		p.writingContents = true
-		p.pdf.SetPage(p.tocPage)
-		p.SetY(p.headerHeight)
-		p.Heading(1, "Contents")
-		p.lineHeight *= 1.5
-		var headingsPerPage int
-		var headingsPerPageSet bool
-		// slice is capped at the end because 'Contents' itself
-		// is a heading
-		for i, heading := range p.headings[:len(p.headings)-1] {
-			// handle overflows onto the next page
-			if !headingsPerPageSet && (p.GetY()+p.lineHeight) > (p.Height()-p.footerHeight) {
-				headingsPerPage = i
-				headingsPerPageSet = true
-			}
-			if headingsPerPageSet && i%headingsPerPage == 0 {
-				p.pdf.SetPage(p.pdf.PageNo() + 1)
-				p.SetY(p.headerHeight)
-			}
-
-			// bold for headingText and headingPage
-			p.font.Bold = true
-			p.SetFont(p.font)
-
-			// heading text
-			headingTextWidth := p.pdf.GetStringWidth(heading.text)
-			headingTextSpaces := strings.Repeat("    ", heading.level-1)
-			headingTextSpacesWidth := p.pdf.GetStringWidth(headingTextSpaces)
-			headingTextWithSpaces := headingTextSpaces + heading.text
-			headingTextWithSpacesWidth := p.pdf.GetStringWidth(headingTextWithSpaces)
-
-			// heading page
-			headingPage := strconv.Itoa(heading.page)
-			headingPageWidth := p.pdf.GetStringWidth(headingPage)
-
-			// dots
-			p.font.Bold = false
-			p.SetFont(p.font)
-			pageWidth := p.Width() - p.margin*2
-			dotSpace := pageWidth - headingTextWithSpacesWidth - headingPageWidth
-			var dots string
-			for {
-				if p.pdf.GetStringWidth(dots) >= dotSpace-p.pdf.GetStringWidth("...") {
-					break
-				}
-				dots += "."
-			}
-
-			// print
-
-			p.font.Bold = true
-			p.SetFont(p.font)
-			p.SetX(p.GetX() + headingTextSpacesWidth)
-			p.pdf.CellFormat(headingTextWidth, p.lineHeight, heading.text, "", 0, "L", false, heading.link, "")
-
-			p.font.Bold = false
-			p.SetFont(p.font)
-			p.Write(dots)
-
-			p.font.Bold = true
-			p.SetFont(p.font)
-			p.pdf.WriteAligned(0, p.lineHeight, headingPage, "R")
-			p.Ln(1)
-		}
-		p.pdf.SetPage(p.pdf.PageCount())
-	}
+	p.finalFunc()
 
 	// output file
 	fmt.Println("Saving PDF...")
@@ -457,6 +391,11 @@ func (p *Pdfb) SaveAs(filePath string) {
 
 // Heading is used to write headings of various levels
 func (p *Pdfb) Heading(level int, str string) {
+	// level must be 1-6
+	if level < 1 || level > 6 {
+		log.ErrorFatal("Invalid level supplied to Heading (%d)", level)
+	}
+
 	// create heading link
 	headingLink := p.pdf.AddLink()
 	p.pdf.SetLink(headingLink, p.GetY(), p.pdf.PageNo())
@@ -470,11 +409,28 @@ func (p *Pdfb) Heading(level int, str string) {
 	currentFont := p.fontCopy(p.font)
 	currentLH := p.lineHeight
 
+	// get font size
+	var fontSize float64
+	switch level {
+	case 6:
+		fontSize = 12
+	case 5:
+		fontSize = 12.5 // add 1 = 13 // add 0.5 = 12.5
+	case 4:
+		fontSize = 13.5 // add 2 = 15 // add 1 = 13.5
+	case 3:
+		fontSize = 15 // add 3 = 18 // add 1.5 = 15
+	case 2:
+		fontSize = 17 // add 4 = 22 // add 2 = 17
+	case 1:
+		fontSize = 19.5 // add 5 = 27 // add 2.5 = 19.5
+	}
+
 	// set font and write content
 	p.SetFont(Font{
 		Family: p.font.Family,
 		Bold:   true,
-		Size:   12 * (1 + float64(7-level)*0.15), // 12 being the default font size
+		Size:   fontSize,
 	})
 
 	// check that the heading height + height of 1 line of regular text
@@ -496,14 +452,26 @@ func (p *Pdfb) Heading(level int, str string) {
 		p.Ln(1)
 	}
 
+	// set foreground for header level 1
+	currentForeground := p.foreground
+	if level == 1 {
+		p.SetForeground(p.accentColour)
+	}
+
 	// write header
 	p.WriteLn(str)
 
+	// draw line for header level 1
+	if level == 1 {
+		p.Line(p.margin, p.GetY(), p.Width()-p.margin, p.GetY(), p.accentColour, 0.5)
+		p.SetY(p.GetY() + p.lineHeight*0.25) // larger gap below heading due to line
+	} else {
+		p.SetY(p.GetY() + p.lineHeight*0.1) // gap below heading
+	}
+
 	// set font back to how it was
 	p.SetFont(currentFont)
-
-	// quarter of a lineHeight of space below headings
-	p.SetY(p.GetY() + p.lineHeight/4)
+	p.SetForeground(currentForeground)
 
 	// add heading to headings array
 	p.headings = append(p.headings, heading{str, level, p.pdf.PageNo(), headingLink})
@@ -523,9 +491,7 @@ func (p *Pdfb) Height() float64 {
 
 // ToC is used to generate table of contents from headings
 func (p *Pdfb) ToC(numPages int) {
-	// insert a new page, then go to the next page, leaving
-	// a blank page for the ToC
-	p.Page()
+	// insert number of pages for toc
 	p.tocPage = p.pdf.PageNo()
 	for i := 0; i < numPages; i++ {
 		p.Page()
@@ -548,9 +514,9 @@ func (p *Pdfb) List(items []ListItem) {
 	for _, item := range items {
 		// indent in from margin (indents stop at level 8)
 		if item.Level <= maxIndent {
-			p.SetX(p.GetX() + float64(8*(item.Level)))
+			p.SetX(p.GetX() + float64(6*(item.Level)))
 		} else {
-			p.SetX(p.GetX() + float64(8*maxIndent))
+			p.SetX(p.GetX() + float64(6*maxIndent))
 		}
 
 		// switch to symbol font
@@ -580,7 +546,7 @@ func (p *Pdfb) List(items []ListItem) {
 		}
 
 		// small indent in from the bullet symbol
-		p.SetX(p.GetX() + 5)
+		p.SetX(p.GetX() + 4)
 
 		// change back to current font
 		p.font.Size = currentFont.Size
@@ -633,4 +599,122 @@ func (p *Pdfb) Hyperlink(displayText, url string) {
 	p.SetForeground("#00f")
 	p.pdf.WriteLinkString(p.lineHeight, displayText, url)
 	p.SetForeground("#000")
+}
+
+// SetAccentColour is used to set the accent colour
+func (p *Pdfb) SetAccentColour(hex string) {
+	p.accentColour = hex
+}
+
+// GetAccentColour is used to get the accent colour
+func (p *Pdfb) GetAccentColour() string {
+	return p.accentColour
+}
+
+// This is the function that gets called before any "outputting" methods
+// such as SaveAs or ExportAs
+func (p *Pdfb) finalFunc() {
+	p.pdf.RegisterAlias("{pages}", strconv.Itoa(p.pdf.PageCount()))
+
+	// go back and write the ToC if necessary
+	if p.tocPage > 0 {
+		// needed to prevent writing a bookmark for 'contents' heading
+		p.writingContents = true
+		// go to toc page
+		p.pdf.SetPage(p.tocPage)
+		// go to top of page, under heading or margin
+		if p.headerHeight > 0 {
+			p.SetY(p.headerHeight)
+		} else {
+			p.SetY(p.margin)
+		}
+		p.Heading(1, "Contents")
+		p.lineHeight *= 1.5
+		var headingsPerPage int
+		var headingsPerPageSet bool
+		// slice is capped at the end because 'Contents' itself
+		// is a heading
+		for i, heading := range p.headings[:len(p.headings)-1] {
+			// handle overflows onto the next page
+			if !headingsPerPageSet && (p.GetY()+p.lineHeight) > (p.Height()-p.footerHeight) {
+				headingsPerPage = i
+				headingsPerPageSet = true
+			}
+			if headingsPerPageSet && i%headingsPerPage == 0 {
+				p.pdf.SetPage(p.pdf.PageNo() + 1)
+				p.SetY(p.headerHeight)
+			}
+
+			// set font to bold for level 1 headings
+			if heading.level == 1 {
+				p.font.Bold = true
+				p.SetFont(p.font)
+			} else {
+				p.font.Bold = false
+				p.SetFont(p.font)
+			}
+
+			// heading text
+			headingTextWidth := p.pdf.GetStringWidth(heading.text)
+			headingTextSpaces := strings.Repeat("    ", heading.level-1)
+			headingTextSpacesWidth := p.pdf.GetStringWidth(headingTextSpaces)
+			headingTextWithSpaces := headingTextSpaces + heading.text
+			headingTextWithSpacesWidth := p.pdf.GetStringWidth(headingTextWithSpaces)
+
+			// heading page
+			headingPage := strconv.Itoa(heading.page)
+			headingPageWidth := p.pdf.GetStringWidth(headingPage)
+
+			// dots
+			pageWidth := p.Width() - p.margin*2
+			dotSpace := pageWidth - headingTextWithSpacesWidth - headingPageWidth
+			var dots string
+			for {
+				if p.pdf.GetStringWidth(dots) >= dotSpace-p.pdf.GetStringWidth("...") {
+					break
+				}
+				dots += "."
+			}
+
+			//
+			//	print
+			//
+
+			if heading.level == 1 {
+				p.font.Bold = true
+				p.SetFont(p.font)
+			}
+
+			// heading text
+			p.SetX(p.GetX() + headingTextSpacesWidth)
+			p.pdf.CellFormat(headingTextWidth, p.lineHeight, heading.text, "", 0, "L", false, heading.link, "")
+
+			// dots
+			p.SetX(p.GetX() + 0.25) // move to the right a little bit
+			p.Write(dots)
+
+			// heading page number
+			p.pdf.WriteAligned(0, p.lineHeight, headingPage, "R")
+			p.Ln(1)
+		}
+
+		// go back to the end of the document before output
+		p.pdf.SetPage(p.pdf.PageCount())
+	}
+}
+
+// ExportAsBase64 is used to return a base64 encoding of the PDF
+func (p *Pdfb) ExportAsBase64() string {
+	p.finalFunc()
+	buf := new(bytes.Buffer)
+	err := p.pdf.Output(buf)
+	if err != nil {
+		panic(err)
+	}
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
+}
+
+// Error is used to print the PDF error
+func (p *Pdfb) Error() {
+	log.Info("PDF Error: %s", p.pdf.Error())
 }

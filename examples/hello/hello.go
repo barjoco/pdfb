@@ -8,43 +8,52 @@ func main() {
 	pdf := pdfb.New()
 
 	//
+	//	Settings
+	//
+
+	pdf.SetAccentColour("#d20a11")
+
+	//
 	//	Front page
 	//
 
 	pdf.Page()
 
 	pdf.Circle(pdf.Width(), pdf.Height(), 150, "#fff5f5", true, false)
-	pdf.Box(0, 0, pdf.Width(), 6, "#f00", true, false)
+	pdf.Box(0, 0, pdf.Width(), 6, pdf.GetAccentColour(), true, false)
 
 	pdf.SetY(80)
 
 	pdf.SetFontSize(15)
-	pdf.SetForeground("#f00")
+	pdf.SetForeground(pdf.GetAccentColour())
 	pdf.BoldLn("Demonstration of building PDFs using Pdfb")
+	pdf.SetY(pdf.GetY() + 4)
 
 	pdf.SetFontSize(40)
 	pdf.SetForeground("#000")
 	pdf.BoldLn("Here is an example")
-	pdf.SetFontSize(-1)
+	pdf.SetY(pdf.GetY() + 6)
 
-	pdf.Ln(1)
-	pdf.Box(pdf.GetX(), pdf.GetY(), 60, 6, "#f00", true, false)
+	pdf.SetFontSize(-1)
+	pdf.Box(pdf.GetX(), pdf.GetY(), 60, 6, pdf.GetAccentColour(), true, false)
 
 	pdf.Ln(8)
 
+	pdf.SetFontSize(15)
+	pdf.BoldLn("John Smith")
+
 	pdf.SetFontSize(-1)
-	pdf.WriteLn("By John Smith")
 
 	//
 	//	Headers and footers
 	//
 
-	pdf.SetHeader(
-		"Inter",
-		pdfb.TextAlign{Text: "Left text", Align: "Left"},
-		pdfb.TextAlign{Text: "Centre text", Align: "c"},
-		pdfb.TextAlign{Text: "Right text", Align: "right"},
-	)
+	// pdf.SetHeader(
+	// 	"Inter",
+	// 	pdfb.TextAlign{Text: "Left text", Align: "Left"},
+	// 	pdfb.TextAlign{Text: "Centre text", Align: "c"},
+	// 	pdfb.TextAlign{Text: "Right text", Align: "right"},
+	// )
 
 	pdf.SetFooter(
 		"Inter",
@@ -55,6 +64,7 @@ func main() {
 	//	Table of Contents
 	//
 
+	pdf.Page()
 	pdf.ToC(1)
 
 	//
@@ -62,10 +72,10 @@ func main() {
 	//
 
 	pdf.Heading(1, "Heading 1")
-	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
 	pdf.Heading(2, "Heading 2")
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
-	pdf.Heading(3, "Slightly longer Heading 3")
+	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
+	pdf.Heading(3, "Heading 3")
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
 	pdf.Heading(4, "Heading 4")
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
@@ -180,6 +190,8 @@ func main() {
 	pdf.Ln(1)
 
 	pdf.Heading(2, "Hyperlinks")
+
+	pdf.Error()
 
 	pdf.Write("Here is a ")
 	pdf.Hyperlink("hyperlink", "https://github.com/barjoco/pdfb")
