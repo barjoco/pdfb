@@ -8,19 +8,13 @@ func main() {
 	pdf := pdfb.New()
 
 	//
-	//	Settings
-	//
-
-	pdf.SetAccentColour("#d20a11")
-
-	//
 	//	Front page
 	//
 
 	pdf.Page()
 
-	pdf.Circle(pdf.Width(), pdf.Height(), 150, "#fff5f5", true, false)
-	pdf.Box(0, 0, pdf.Width(), 6, pdf.GetAccentColour(), true, false)
+	pdf.Circle(pdf.GetPageWidth(), pdf.GetPageHeight(), 150, "#fff5f5", true, false)
+	pdf.Box(0, 0, pdf.GetPageWidth(), 6, pdf.GetAccentColour(), true, false)
 
 	pdf.SetY(80)
 
@@ -34,7 +28,7 @@ func main() {
 	pdf.BoldLn("Here is an example")
 	pdf.SetY(pdf.GetY() + 6)
 
-	pdf.SetFontSize(-1)
+	pdf.SetFontSize(12)
 	pdf.Box(pdf.GetX(), pdf.GetY(), 60, 6, pdf.GetAccentColour(), true, false)
 
 	pdf.Ln(8)
@@ -42,18 +36,18 @@ func main() {
 	pdf.SetFontSize(15)
 	pdf.BoldLn("John Smith")
 
-	pdf.SetFontSize(-1)
+	pdf.SetFontSize(12)
 
 	//
 	//	Headers and footers
 	//
 
-	// pdf.SetHeader(
-	// 	"Inter",
-	// 	pdfb.TextAlign{Text: "Left text", Align: "Left"},
-	// 	pdfb.TextAlign{Text: "Centre text", Align: "c"},
-	// 	pdfb.TextAlign{Text: "Right text", Align: "right"},
-	// )
+	pdf.SetHeader(
+		"Inter",
+		pdfb.TextAlign{Text: "Left text", Align: "Left"},
+		pdfb.TextAlign{Text: "Centre text", Align: "c"},
+		pdfb.TextAlign{Text: "Right text", Align: "right"},
+	)
 
 	pdf.SetFooter(
 		"Inter",
@@ -142,6 +136,8 @@ func main() {
 	pdf.SetFont(pdfb.Font{Family: "RobotoMono"})
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
 
+	pdf.SetFont(pdfb.Font{Family: "Inter"})
+
 	pdf.Write("Here is some ")
 	pdf.BoldLn("bold text.")
 
@@ -161,19 +157,9 @@ func main() {
 	pdf.WriteLn("italic strikethrough text.")
 	pdf.SetFont(pdfb.Font{})
 
-	pdf.ImportFont("RobotoMonoThin", "./RobotoMono",
-		[]pdfb.FontStyle{
-			{File: "RobotoMono-Thin.ttf", Style: ""},
-		},
-	)
-
-	pdf.Write("Here is some ")
-	pdf.SetFont(pdfb.Font{Family: "RobotoMonoThin"})
-	pdf.WriteLn("custom styled font.")
-	pdf.SetFont(pdfb.Font{Family: "RobotoMono"})
-
 	pdf.Ln(1)
 
+	pdf.SetFont(pdfb.Font{Family: "RobotoMono"})
 	pdf.Heading(2, "Heading with custom font")
 	pdf.WriteLn("List with custom font:")
 	pdf.List(
@@ -189,16 +175,11 @@ func main() {
 	pdf.SetFont(pdfb.Font{Family: "Default"})
 	pdf.Ln(1)
 
-	pdf.Heading(2, "Hyperlinks")
-
-	pdf.Error()
+	pdf.Heading(1, "Hyperlinks")
 
 	pdf.Write("Here is a ")
 	pdf.Hyperlink("hyperlink", "https://github.com/barjoco/pdfb")
 	pdf.WriteLn(" to the Pdfb repo.")
-
-	// Set back to default font
-	pdf.SetFont(pdfb.Font{Family: "Inter"})
 
 	pdf.SaveAs("examples/hello/hello.pdf")
 }

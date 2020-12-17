@@ -10,6 +10,16 @@ import (
 
 var stdFonts = []string{"courier", "helvetica", "arial", "times", "symbol", "zapfdingbats"}
 
+// Font defines a font
+type Font struct {
+	Family        string
+	Size          float64
+	Bold          bool
+	Italic        bool
+	Underline     bool
+	Strikethrough bool
+}
+
 // makes a font styleStr from the stored font style information
 func (p *Pdfb) makeFontStyleStr() (styleStr string) {
 	if p.font.Bold {
@@ -52,7 +62,8 @@ func (p *Pdfb) SetFont(font Font) {
 		font.Family = "Inter"
 	}
 
-	// call this to adjust lineHeight based on previous f.font.Size
+	// call this before settings the p.font, since SetFontSize uses a comparison
+	// of the old p.lineHeight, so p.font need not be overwritten before setting the new fontSize
 	p.SetFontSize(font.Size)
 
 	// call this after SetFontSize to set the new p.font
@@ -67,19 +78,24 @@ func (p *Pdfb) SetFont(font Font) {
 	}
 }
 
+// GetFont is used to get the font
+func (p *Pdfb) GetFont(font Font) Font {
+	return p.font
+}
+
 // SetFontSize is used to set the font size
 func (p *Pdfb) SetFontSize(fontSize float64) {
-	if fontSize == -1 {
-		fontSize = 12
-	}
-
+	// calculate font size increase (or decrease) based on current p.font.Size vs new fontSize
 	fontSizeIncrease := fontSize / p.font.Size
 
 	// scale lineHeight with increase/decrease of fontSize
 	p.lineHeight *= fontSizeIncrease
 
+	// set new fontSize
 	p.font.Size = fontSize
 	p.pdf.SetFontSize(fontSize)
+
+	p.checkpoint("Font sized changed")
 }
 
 // FontStyle defines a custom font style
@@ -115,6 +131,13 @@ func (p *Pdfb) ImportFont(fontName, fontDir string, fontStyles []FontStyle) {
 func (p *Pdfb) SetForeground(hex string) {
 	p.foreground = hex
 	p.pdf.SetTextColor(colour.HexToRGB(hex))
+
+	p.checkpoint("Foreground set")
+}
+
+// GetForeground is used to get the foreground
+func (p *Pdfb) GetForeground() string {
+	return p.foreground
 }
 
 // Bold is used to print bold text
@@ -126,6 +149,8 @@ func (p *Pdfb) Bold(str string) {
 
 	p.font.Bold = false
 	p.SetFont(p.font)
+
+	p.checkpoint("Bold text written")
 }
 
 // BoldLn is used to print bold text, then print new line

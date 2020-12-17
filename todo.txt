@@ -1,5 +1,1 @@
-- nested numbered lists
-- hyperlinks
-
-
-- custom fonts
+- add checkpoints to functions
