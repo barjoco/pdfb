@@ -34,6 +34,7 @@ type Pdfb struct {
 	creationDate     time.Time
 	font             Font
 	foreground       string
+	indentSize       float64
 	keywords         []string
 	lineHeight       float64
 	margin           float64
@@ -60,11 +61,12 @@ func New() *Pdfb {
 		writingContents: false,
 
 		accentColour:     "#f00",
-		author:           "Author",
+		author:           "",
 		background:       "#ffffff",
 		creationDate:     time.Now(),
 		font:             Font{Family: "Inter", Size: 12.0},
 		foreground:       "#000000",
+		indentSize:       4,
 		keywords:         []string{},
 		lineHeight:       6.0,
 		margin:           20.0,
@@ -73,8 +75,8 @@ func New() *Pdfb {
 		pageHeight:       297.0,
 		pageSize:         "A4",
 		pageWidth:        210.0,
-		subject:          "Creating documents with Pdfb",
-		title:            "Document",
+		subject:          "",
+		title:            "",
 	}
 
 	// import inter to be used as the default font
@@ -86,6 +88,7 @@ func New() *Pdfb {
 	p.checkpoint("Inter font imported")
 
 	// pdf initialisation
+	p.pdf.SetCellMargin(0)
 	p.pdf.SetProducer("GoFPDF 2.17.2", true)
 	p.pdf.AliasNbPages("")
 	p.pdf.SetAuthor(p.author, true)
@@ -134,6 +137,7 @@ func (p *Pdfb) GetAccentColour() string {
 func (p *Pdfb) SetAuthor(author string) {
 	p.author = author
 	p.pdf.SetAuthor(author, true)
+	p.checkpoint("Author set")
 }
 
 // GetAuthor is used to get the author
@@ -155,6 +159,7 @@ func (p *Pdfb) GetBackground() string {
 func (p *Pdfb) SetCreationDate(creationDate time.Time) {
 	p.creationDate = creationDate
 	p.pdf.SetCreationDate(creationDate)
+	p.checkpoint("Creation date set")
 }
 
 // GetCreationDate is used to get the creationDate
@@ -162,10 +167,21 @@ func (p *Pdfb) GetCreationDate() time.Time {
 	return p.creationDate
 }
 
+// SetIndentSize is used to set the indentSize
+func (p *Pdfb) SetIndentSize(indentSize float64) {
+	p.indentSize = indentSize
+}
+
+// GetIndentSize is used to get the indentSize
+func (p *Pdfb) GetIndentSize() float64 {
+	return p.indentSize
+}
+
 // SetKeywords is used to set the keywords
 func (p *Pdfb) SetKeywords(keywords []string) {
 	p.keywords = keywords
 	p.pdf.SetKeywords(strings.Join(keywords, ";"), true)
+	p.checkpoint("Keywords set")
 }
 
 // GetKeywords is used to get the keywords
@@ -187,6 +203,7 @@ func (p *Pdfb) GetLineHeight() float64 {
 func (p *Pdfb) SetMargin(margin float64) {
 	p.margin = margin
 	p.pdf.SetMargins(margin, margin, margin)
+	p.checkpoint("Margins set")
 }
 
 // GetMargin is used to get the margin
@@ -198,6 +215,7 @@ func (p *Pdfb) GetMargin() float64 {
 func (p *Pdfb) SetModificationDate(modificationDate time.Time) {
 	p.modificationDate = modificationDate
 	p.pdf.SetModificationDate(modificationDate)
+	p.checkpoint("Modification date set")
 }
 
 // GetModificationDate is used to get the modificationDate
@@ -269,6 +287,7 @@ func (p *Pdfb) SetPageSize(pageSize string) {
 	default:
 		log.ErrorFatal("%s is not a valid page size.", pageSize)
 	}
+	p.checkpoint("Page size set")
 }
 
 // GetPageSize is used to get the pageSize
@@ -291,6 +310,7 @@ func (p *Pdfb) GetPageWidth() float64 {
 func (p *Pdfb) SetSubject(subject string) {
 	p.subject = subject
 	p.pdf.SetSubject(subject, true)
+	p.checkpoint("Subject set")
 }
 
 // GetSubject is used to get the subject
@@ -302,6 +322,7 @@ func (p *Pdfb) GetSubject() string {
 func (p *Pdfb) SetTitle(title string) {
 	p.title = title
 	p.pdf.SetTitle(title, true)
+	p.checkpoint("Title set")
 }
 
 // GetTitle is used to get the title
@@ -378,7 +399,11 @@ func (p *Pdfb) SetHeader(fontFamily string, content ...TextAlign) {
 		// set cursor to the bottom of the header
 		p.pdf.SetX(p.margin)
 		p.pdf.SetY(p.headerHeight)
+
+		p.checkpoint("Header printed")
 	})
+
+	p.checkpoint("Header set")
 }
 
 // SetFooter is used to set the footer
@@ -394,7 +419,7 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 	triggeredPage := p.pdf.PageNo()
 
 	p.pdf.SetFooterFunc(func() {
-		// don't run on the page that SetFooter was called on
+		// don't run on the page that SetFooter was called on, in order to match the behaviour of SetHeader
 		if p.pdf.PageNo() == triggeredPage {
 			return
 		}
@@ -441,15 +466,20 @@ func (p *Pdfb) SetFooter(fontFamily string, content ...TextAlign) {
 
 		// set foreground back to how it was
 		p.SetForeground(currentFG)
+
+		p.checkpoint("Footer printed")
 	})
 
 	// set the space from the bottom where the auto page break gets triggered
 	p.pdf.SetAutoPageBreak(true, p.footerHeight)
+
+	p.checkpoint("Footer set")
 }
 
 // SetX is used to set the cursor's horizontal position
 func (p *Pdfb) SetX(x float64) {
 	p.pdf.SetX(x)
+	p.checkpoint("X position set")
 }
 
 // SetY is used to set the cursor's vertical position
@@ -485,6 +515,19 @@ func (p *Pdfb) Box(x, y, w, h float64, hex string, fill, border bool) {
 	p.checkpoint("Box created")
 }
 
+// BoxInline is used to draw a box inline
+func (p *Pdfb) BoxInline(w, h float64, hex string, fill, border bool) {
+	pageWidth := p.GetPageWidth() - p.margin*2
+	currentX, currentY := p.GetX(), p.GetY()
+	p.Box(currentX, currentY, w, h, hex, fill, border)
+	if currentX+w < pageWidth {
+		p.SetX(currentX + w)
+	} else {
+		p.SetY(currentY + h)
+		p.SetX(p.margin)
+	}
+}
+
 // Circle is used to draw a circle
 func (p *Pdfb) Circle(x, y, radius float64, hex string, fill, border bool) {
 	var styleStr string
@@ -513,12 +556,16 @@ func (p *Pdfb) Line(fromX, fromY, toX, toY float64, hex string, weight float64) 
 
 	p.pdf.SetDrawColor(currentDrawR, currentDrawG, currentDrawB)
 	p.pdf.SetLineWidth(currentWeight)
+
+	p.checkpoint("Line created")
 }
 
 // SetLine is used to set the line colour and weight
 func (p *Pdfb) SetLine(hex string, weight float64) {
 	p.pdf.SetDrawColor(colour.HexToRGB(hex))
 	p.pdf.SetLineWidth(weight)
+
+	p.checkpoint("Line width set")
 }
 
 // Ln is used to insert a new line (or multiple)
@@ -526,24 +573,28 @@ func (p *Pdfb) Ln(lines int) {
 	for i := 0; i < lines; i++ {
 		p.pdf.Ln(p.lineHeight)
 	}
+	p.checkpoint("Line break inserted")
 }
 
 // Write is used to write text to the page
 func (p *Pdfb) Write(format string, a ...interface{}) {
 	text := fmt.Sprintf(format, a...)
 	p.pdf.Write(p.lineHeight, text)
+	p.checkpoint("Text written")
 }
 
 // WriteLn is used to write text to the page (drop to next line after text)
 func (p *Pdfb) WriteLn(format string, a ...interface{}) {
 	p.Write(format, a...)
 	p.Ln(1)
+	p.checkpoint("Write line printed")
 }
 
 // Paragraph is used to write a paragraph (blank line after text)
 func (p *Pdfb) Paragraph(format string, a ...interface{}) {
 	p.Write(format, a...)
 	p.Ln(2)
+	p.checkpoint("Paragraph printed")
 }
 
 // SaveAs is used to save the PDF document to a file
@@ -555,6 +606,8 @@ func (p *Pdfb) SaveAs(filePath string) {
 	err := p.pdf.OutputFileAndClose(filePath)
 	log.ReportFatal(err)
 	log.Info("PDF saved to %s.", filePath)
+
+	p.checkpoint("Document saved")
 }
 
 // Heading is used to write headings of various levels
@@ -614,22 +667,22 @@ func (p *Pdfb) Heading(level int, str string) {
 	}
 	// // do the check and print line if necessary
 	// // description of the check:
-	// // p.lineHeight = lineheight of the header
+	// // p.lineHeight = lineheight of the heading
 	// // currentLH = lineheight of the previous text (and future text)
 	// // currentLH/4 = an extra quarter of a lineheight space for line
 	if (p.pdf.GetY() + p.lineHeight + currentLH + currentLH/4) > (p.GetPageHeight() - bottomSpace) {
 		p.Ln(1)
 	}
 
-	// set foreground for header level 1
+	// set foreground for heading level 1
 	if level == 1 {
 		p.SetForeground(p.accentColour)
 	}
 
-	// write header
+	// write heading
 	p.WriteLn(str)
 
-	// draw line under for header level 1
+	// draw line under for heading level 1
 	if level == 1 {
 		p.Line(p.margin, p.GetY(), p.GetPageWidth()-p.margin, p.GetY(), p.accentColour, 0.5)
 		p.SetY(p.GetY() + p.lineHeight*0.25) // larger gap below heading due to line
@@ -673,9 +726,9 @@ func (p *Pdfb) List(items []ListItem) {
 	for _, item := range items {
 		// indent in from margin (indents stop at level 8)
 		if item.Level <= maxIndent {
-			p.SetX(p.GetX() + float64(6*(item.Level)))
+			p.SetX(p.margin + p.indentSize*1.5*float64(item.Level))
 		} else {
-			p.SetX(p.GetX() + float64(6*maxIndent))
+			p.SetX(p.margin + p.indentSize*1.5*float64(maxIndent))
 		}
 
 		// switch to symbol font
@@ -705,7 +758,7 @@ func (p *Pdfb) List(items []ListItem) {
 		}
 
 		// small indent in from the bullet symbol
-		p.SetX(p.GetX() + 4)
+		p.SetX(p.GetX() + p.indentSize/1.25)
 
 		// change back to current font
 		p.font.Size = currentFont.Size
@@ -714,21 +767,28 @@ func (p *Pdfb) List(items []ListItem) {
 		// print
 		p.pdf.MultiCell(0, p.lineHeight, item.Text, "", "", false)
 
-		// move down a little bit after each list item
-		p.SetY(p.GetY() + 1)
+		// leave some space under each list item
+		p.SetY(p.GetY() + 2)
 	}
+
+	p.checkpoint("List printed")
 }
 
 // Image is used to insert an image
 // Use 0 in place of w or h to keep the aspect ratio
 func (p *Pdfb) Image(filename, align string, x, y, w, h float64) {
+	// check if image exists
+	if !fileExists(filename) {
+		log.ErrorFatal("Image could not be located (%s)", filename)
+	}
+
 	// calc w and/or h values if 0 is given
 	if w == 0 {
-		info := p.pdf.RegisterImage("fish.png", "")
+		info := p.pdf.RegisterImage(filename, "")
 		w = h * info.Width() / info.Height()
 	}
 	if h == 0 {
-		info := p.pdf.RegisterImage("fish.png", "")
+		info := p.pdf.RegisterImage(filename, "")
 		h = w * info.Height() / info.Width()
 	}
 
@@ -746,11 +806,13 @@ func (p *Pdfb) Image(filename, align string, x, y, w, h float64) {
 
 	// draw image
 	p.pdf.Image(filename, x, y, w, h, true, "", 0, "")
+
+	p.checkpoint("Image printed")
 }
 
 // Debug is used for debugging purposes
 func (p *Pdfb) Debug(str string) {
-	fmt.Println(str)
+	fmt.Println("-- Debug:", str)
 }
 
 // Hyperlink is used to print hyperlinks
@@ -761,6 +823,8 @@ func (p *Pdfb) Hyperlink(displayText, url string) {
 	p.pdf.WriteLinkString(p.lineHeight, displayText, url)
 
 	p.SetForeground(currentFG)
+
+	p.checkpoint("Hyperlink printed")
 }
 
 // This is the function that gets called before any "outputting" methods
@@ -792,6 +856,7 @@ func (p *Pdfb) finalFunc() {
 				headingsPerPage = i
 				headingsPerPageSet = true
 			}
+			// every time a multiple of headingsPerPage is hit, go to the next page
 			if headingsPerPageSet && i%headingsPerPage == 0 {
 				p.pdf.SetPage(p.pdf.PageNo() + 1)
 				p.SetY(p.headerHeight)
@@ -806,12 +871,10 @@ func (p *Pdfb) finalFunc() {
 				p.SetFont(p.font)
 			}
 
+			headingIndent := p.indentSize * float64(heading.level-1)
+
 			// heading text
-			headingTextWidth := p.pdf.GetStringWidth(heading.text)
-			headingTextSpaces := strings.Repeat("    ", heading.level-1)
-			headingTextSpacesWidth := p.pdf.GetStringWidth(headingTextSpaces)
-			headingTextWithSpaces := headingTextSpaces + heading.text
-			headingTextWithSpacesWidth := p.pdf.GetStringWidth(headingTextWithSpaces)
+			headingTextWidth := headingIndent + p.pdf.GetStringWidth(heading.text)
 
 			// heading page
 			headingPage := strconv.Itoa(heading.page)
@@ -819,10 +882,10 @@ func (p *Pdfb) finalFunc() {
 
 			// dots
 			pageWidth := p.GetPageWidth() - p.margin*2
-			dotSpace := pageWidth - headingTextWithSpacesWidth - headingPageWidth
+			dotSpace := pageWidth - headingTextWidth - headingPageWidth
 			var dots string
 			for {
-				if p.pdf.GetStringWidth(dots) >= dotSpace-p.pdf.GetStringWidth("...") {
+				if p.pdf.GetStringWidth(dots) >= dotSpace-0.75 {
 					break
 				}
 				dots += "."
@@ -838,21 +901,21 @@ func (p *Pdfb) finalFunc() {
 			}
 
 			// heading text
-			p.SetX(p.GetX() + headingTextSpacesWidth)
-			p.pdf.CellFormat(headingTextWidth, p.lineHeight, heading.text, "", 0, "L", false, heading.link, "")
+			p.SetX(p.margin + headingIndent)
+			p.pdf.CellFormat(headingTextWidth-headingIndent, p.lineHeight, heading.text, "", 0, "L", false, heading.link, "")
 
 			// dots
-			p.SetX(p.GetX() + 0.25) // move to the right a little bit
-			p.Write(dots)
+			p.pdf.CellFormat(dotSpace, p.lineHeight, dots, "", 0, "C", false, 0, "")
 
 			// heading page number
-			p.pdf.WriteAligned(0, p.lineHeight, headingPage, "R")
+			p.pdf.CellFormat(headingPageWidth, p.lineHeight, headingPage, "", 0, "R", false, 0, "")
 			p.Ln(1)
 		}
 
 		// go back to the end of the document before output
 		p.pdf.SetPage(p.pdf.PageCount())
 	}
+	p.checkpoint("Final func used")
 }
 
 // ExportAsBase64 is used to return a base64 encoding of the PDF
@@ -863,6 +926,7 @@ func (p *Pdfb) ExportAsBase64() string {
 	if err != nil {
 		panic(err)
 	}
+	p.checkpoint("Base64 encoding returned")
 	return base64.StdEncoding.EncodeToString(buf.Bytes())
 }
 

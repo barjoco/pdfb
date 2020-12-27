@@ -85,11 +85,8 @@ func (p *Pdfb) GetFont(font Font) Font {
 
 // SetFontSize is used to set the font size
 func (p *Pdfb) SetFontSize(fontSize float64) {
-	// calculate font size increase (or decrease) based on current p.font.Size vs new fontSize
-	fontSizeIncrease := fontSize / p.font.Size
-
 	// scale lineHeight with increase/decrease of fontSize
-	p.lineHeight *= fontSizeIncrease
+	p.lineHeight *= fontSize / p.font.Size
 
 	// set new fontSize
 	p.font.Size = fontSize

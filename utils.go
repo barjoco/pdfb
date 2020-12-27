@@ -2,7 +2,7 @@ package pdfb
 
 import (
 	"encoding/base64"
-	"fmt"
+	"os"
 	"strings"
 
 	"github.com/barjoco/utils/log"
@@ -17,12 +17,19 @@ func decode(b64Str string) (b []byte) {
 	return
 }
 
+func fileExists(f string) bool {
+	if _, err := os.Stat(f); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 // Used to report any errors or display a success message
 func (p *Pdfb) checkpoint(str string) {
 	if p.pdf.Err() {
 		log.ErrorFatal(p.pdf.Error().Error())
 	} else {
-		fmt.Println("-- Checkpoint:", str)
+		//fmt.Println("-- Checkpoint:", str)
 	}
 }
 

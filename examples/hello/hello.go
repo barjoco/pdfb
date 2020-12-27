@@ -7,6 +7,11 @@ import (
 func main() {
 	pdf := pdfb.New()
 
+	pdf.SetAuthor("John Smith")
+	pdf.SetTitle("Pdfb Document")
+	pdf.SetSubject("Building documents with Pdfb")
+	pdf.SetKeywords([]string{"Pdfb", "Document", "Example"})
+
 	//
 	//	Front page
 	//
@@ -28,12 +33,10 @@ func main() {
 	pdf.BoldLn("Here is an example")
 	pdf.SetY(pdf.GetY() + 6)
 
-	pdf.SetFontSize(12)
-	pdf.Box(pdf.GetX(), pdf.GetY(), 60, 6, pdf.GetAccentColour(), true, false)
-
-	pdf.Ln(8)
+	pdf.BoxInline(60, 6, pdf.GetAccentColour(), true, false)
 
 	pdf.SetFontSize(15)
+	pdf.Ln(6)
 	pdf.BoldLn("John Smith")
 
 	pdf.SetFontSize(12)
@@ -113,7 +116,7 @@ func main() {
 	pdf.Heading(1, "Images")
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
 
-	pdf.Image("fish.png", "c", pdf.GetX(), pdf.GetY(), 0, 70)
+	pdf.Image("./examples/hello/fish.png", "c", pdf.GetX(), pdf.GetY(), 0, 70)
 
 	pdf.Ln(1)
 	pdf.Paragraph("Exercitation mollit veniam velit ex aliquip occaecat commodo Lorem fugiat. Occaecat voluptate Lorem sint consequat consequat incididunt consectetur elit aliqua id. Culpa dolor irure culpa sint cupidatat aliqua sint excepteur laborum. Aliqua ea cupidatat ut irure officia in proident incididunt exercitation anim amet. Ea deserunt ex Lorem consequat labore Lorem deserunt consequat ad aute cupidatat Lorem. Tempor voluptate quis consequat exercitation est ex qui dolore est consectetur est deserunt ut nostrud.")
@@ -124,7 +127,7 @@ func main() {
 
 	pdf.Heading(1, "Custom fonts")
 
-	pdf.ImportFont("RobotoMono", "./RobotoMono",
+	pdf.ImportFont("RobotoMono", "./examples/hello/RobotoMono",
 		[]pdfb.FontStyle{
 			{File: "RobotoMono-Regular.ttf", Style: ""},
 			{File: "RobotoMono-Bold.ttf", Style: "Bold"},
