@@ -8,7 +8,7 @@ import (
 	"github.com/barjoco/utils/log"
 )
 
-var stdFonts = []string{"courier", "helvetica", "arial", "times", "symbol", "zapfdingbats"}
+// var stdFonts = []string{"courier", "helvetica", "arial", "times", "symbol", "zapfdingbats"}
 
 // Font defines a font
 type Font struct {

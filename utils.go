@@ -2,6 +2,7 @@ package pdfb
 
 import (
 	"encoding/base64"
+	"fmt"
 	"os"
 	"strings"
 
@@ -29,7 +30,7 @@ func (p *Pdfb) checkpoint(str string) {
 	if p.pdf.Err() {
 		log.ErrorFatal(p.pdf.Error().Error())
 	} else {
-		//fmt.Println("-- Checkpoint:", str)
+		fmt.Println("-- Checkpoint:", str)
 	}
 }
 

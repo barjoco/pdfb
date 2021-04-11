@@ -14,7 +14,7 @@ import (
 	"github.com/jung-kurt/gofpdf"
 )
 
-var err error
+// var err error
 
 // Pdfb is the main Pdfb struct
 type Pdfb struct {
