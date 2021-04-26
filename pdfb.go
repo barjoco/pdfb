@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/barjoco/utils/colour"
-	"github.com/barjoco/utils/inter"
 	"github.com/barjoco/utils/log"
 	"github.com/jung-kurt/gofpdf"
 )
@@ -80,10 +79,10 @@ func New() *Pdfb {
 	}
 
 	// import inter to be used as the default font
-	p.pdf.AddUTF8FontFromBytes("Inter", "", decode(inter.InterRegular))
-	p.pdf.AddUTF8FontFromBytes("Inter", "b", decode(inter.InterBold))
-	p.pdf.AddUTF8FontFromBytes("Inter", "i", decode(inter.InterItalic))
-	p.pdf.AddUTF8FontFromBytes("Inter", "bi", decode(inter.InterBoldItalic))
+	// p.pdf.AddUTF8FontFromBytes("Inter", "", decode(inter.InterRegular))
+	// p.pdf.AddUTF8FontFromBytes("Inter", "b", decode(inter.InterBold))
+	// p.pdf.AddUTF8FontFromBytes("Inter", "i", decode(inter.InterItalic))
+	// p.pdf.AddUTF8FontFromBytes("Inter", "bi", decode(inter.InterBoldItalic))
 
 	p.checkpoint("Inter font imported")
 

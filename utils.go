@@ -1,7 +1,6 @@
 package pdfb
 
 import (
-	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
@@ -10,13 +9,13 @@ import (
 )
 
 // Used to decode base64 encoded string
-func decode(b64Str string) (b []byte) {
-	b, err := base64.StdEncoding.DecodeString(b64Str)
-	if err != nil {
-		log.ErrorFatal("%s", err)
-	}
-	return
-}
+// func decode(b64Str string) (b []byte) {
+// 	b, err := base64.StdEncoding.DecodeString(b64Str)
+// 	if err != nil {
+// 		log.ErrorFatal("%s", err)
+// 	}
+// 	return
+// }
 
 func fileExists(f string) bool {
 	if _, err := os.Stat(f); os.IsNotExist(err) {

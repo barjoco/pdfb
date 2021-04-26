@@ -7,6 +7,8 @@ import (
 func main() {
 	pdf := pdfb.New()
 
+	// PDF Metadata
+
 	pdf.SetAuthor("John Smith")
 	pdf.SetTitle("Pdfb Document")
 	pdf.SetSubject("Building documents with Pdfb")
