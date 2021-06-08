@@ -4,8 +4,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/barjoco/utils/colour"
-	"github.com/barjoco/utils/log"
+	"github.com/barjoio/utils/colour"
+	"github.com/barjoio/utils/log"
 )
 
 // var stdFonts = []string{"courier", "helvetica", "arial", "times", "symbol", "zapfdingbats"}

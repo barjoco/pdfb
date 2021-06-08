@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/barjoco/utils/log"
+	"github.com/barjoio/utils/log"
 )
 
 // Used to decode base64 encoded string

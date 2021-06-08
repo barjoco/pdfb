@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/barjoco/pdfb"
+	"github.com/barjoio/pdfb"
 )
 
 func main() {
@@ -183,7 +183,7 @@ func main() {
 	pdf.Heading(1, "Hyperlinks")
 
 	pdf.Write("Here is a ")
-	pdf.Hyperlink("hyperlink", "https://github.com/barjoco/pdfb")
+	pdf.Hyperlink("hyperlink", "https://github.com/barjoio/pdfb")
 	pdf.WriteLn(" to the Pdfb repo.")
 
 	pdf.SaveAs("examples/hello/hello.pdf")

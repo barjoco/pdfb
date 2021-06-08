@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/barjoco/utils/colour"
-	"github.com/barjoco/utils/log"
+	"github.com/barjoio/utils/colour"
+	"github.com/barjoio/utils/log"
 	"github.com/jung-kurt/gofpdf"
 )
 
@@ -92,7 +92,7 @@ func New() *Pdfb {
 	p.pdf.AliasNbPages("")
 	p.pdf.SetAuthor(p.author, true)
 	p.pdf.SetAutoPageBreak(true, p.margin)
-	p.pdf.SetCreator("github.com/barjoco/pdfb", true)
+	p.pdf.SetCreator("github.com/barjoio/pdfb", true)
 	p.pdf.SetCreationDate(p.creationDate)
 	p.pdf.SetFont(p.font.Family, "", p.font.Size)
 	p.pdf.SetFontSize(p.font.Size)
